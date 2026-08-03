@@ -8,7 +8,7 @@
 
 Command: `npm test`
 
-Result: **PASS — 16/16 tests**
+Result: **PASS — 17/17 tests**
 
 Covered behavior:
 
@@ -20,7 +20,7 @@ Covered behavior:
 - slack and taut line forces
 - line overload detection
 - spring-line yaw moment
-- reverse thrust and port prop walk
+- reverse thrust with adjustable port or starboard prop walk
 - opposite rudder directions while moving
 - rudder response to ahead prop wash from rest
 - fixed-step rigid-body integration
@@ -44,6 +44,7 @@ Verified:
 - four-line preset creates four model and UI lines
 - astern command moves the boat backward
 - port prop walk moves the boat toward local port in reverse
+- starboard prop walk reverses the lateral motion and displays the selected direction
 - ahead command advances the boat
 - run/pause advances and stops simulation time
 - scenario save/load restores four lines and its name

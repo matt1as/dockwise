@@ -13,7 +13,7 @@
       <span class="brand-mark" aria-hidden="true">D</span>
       <div><strong>Dockwise</strong><span>Low-speed maneuver lab</span></div>
     </div>
-    <div class="model-pill"><span class="status-dot"></span>32 ft fin keel · S-drive · port prop walk</div>
+    <div class="model-pill"><span class="status-dot"></span>32 ft fin keel · S-drive · adjustable prop walk</div>
     <button id="analysisToggle" class="ghost-button" type="button" aria-pressed="true">Analysis on</button>
   </header>
 
@@ -46,7 +46,8 @@
         <label class="range-row" for="throttle"><span>Throttle <output id="throttleValue">45%</output></span><input id="throttle" type="range" min="0" max="100" value="45"></label>
         <label class="range-row" for="rudder"><span>Rudder <output id="rudderValue">0°</output></span><input id="rudder" type="range" min="-35" max="35" value="0"></label>
         <div class="direction-labels"><span>Port</span><span>Starboard</span></div>
-        <label class="range-row compact" for="propWalk"><span>Port prop walk <output id="propWalkValue">65%</output></span><input id="propWalk" type="range" min="0" max="150" value="65"></label>
+        <label class="range-row compact" for="propWalk"><span>Prop walk <output id="propWalkValue">65% port</output></span><input id="propWalk" type="range" min="-150" max="150" value="65"></label>
+        <div class="direction-labels prop-walk-labels"><span>Starboard</span><span>None</span><span>Port</span></div>
       </section>
 
       <section>

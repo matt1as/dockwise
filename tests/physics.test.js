@@ -101,6 +101,14 @@ test('reverse thrust adds port-side prop walk', () => {
   assert.ok(forces.force.y < 0, 'port prop walk should push toward local port');
 });
 
+test('negative prop-walk setting reverses the effect toward starboard', () => {
+  const state = createInitialState({ x: 0, y: 0, heading: 0 });
+  const forces = computeForces(state, { lines: [], engine: -1, throttle: 1, rudderDeg: 0, propWalk: -1, wind: { speed: 0, directionDeg: 0 }, current: { speed: 0, directionDeg: 0 } });
+  assert.ok(forces.force.x < 0, 'reverse thrust should still push astern');
+  assert.ok(forces.force.y > 0, 'negative prop walk should push toward local starboard');
+  assert.ok(forces.records.some((record) => record.name === 'Starboard prop walk'));
+});
+
 test('rudder creates opposite lateral force for opposite helm angles when moving ahead', () => {
   const portHelm = createInitialState({ vx: 1 });
   const starboardHelm = createInitialState({ vx: 1 });

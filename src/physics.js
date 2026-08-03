@@ -124,7 +124,7 @@ export function computeForces(state, controls = {}) {
   const engine = Math.max(-1, Math.min(1, Number(controls.engine || 0)));
   const throttle = Math.max(0, Math.min(1, Number(controls.throttle || 0)));
   const rudderDeg = Math.max(-40, Math.min(40, Number(controls.rudderDeg || 0)));
-  const propWalk = Math.max(0, Math.min(2, Number(controls.propWalk ?? 0.65)));
+  const propWalk = Math.max(-2, Math.min(2, Number(controls.propWalk ?? 0.65)));
   const records = [];
   const lineResults = [];
   let totalForce = { x: 0, y: 0 };
@@ -141,8 +141,9 @@ export function computeForces(state, controls = {}) {
   if (engine !== 0 && throttle > 0) {
     const thrust = engine * throttle * 3400;
     apply('Engine thrust', { x: -1.25, y: 0 }, { x: thrust, y: 0 });
-    if (engine < 0 && propWalk > 0) {
-      apply('Port prop walk', { x: -1.25, y: 0 }, { x: 0, y: -1100 * throttle * propWalk });
+    if (engine < 0 && Math.abs(propWalk) > 0) {
+      const direction = propWalk > 0 ? 'Port' : 'Starboard';
+      apply(`${direction} prop walk`, { x: -1.25, y: 0 }, { x: 0, y: -1100 * throttle * propWalk });
     }
   }
 

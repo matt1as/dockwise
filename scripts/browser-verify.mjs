@@ -58,7 +58,7 @@ assert(initial.ready === 'complete', 'page must finish loading');
 assert(initial.title.includes('Dockwise'), 'title should identify Dockwise');
 assert(initial.lines === 1, 'aft-spring preset should start with one line');
 assert(initial.canvasWidth > 500 && initial.canvasHeight > 400, 'canvas should be rendered at useful resolution');
-assert(initial.boatModel.includes('32 ft') && initial.boatModel.includes('port prop walk'), 'boat model should be visible');
+assert(initial.boatModel.includes('32 ft') && initial.boatModel.includes('adjustable prop walk'), 'boat model should be visible');
 
 const endOnBerths = await evaluate(`(() => {
   window.__dockwise.setBerthMode('bow-to');
@@ -91,6 +91,19 @@ const reverseResult = await evaluate(`(() => {
 })()`);
 assert(reverseResult.x < -0.05, 'astern power should move the boat backward');
 assert(reverseResult.y < -0.001, 'reverse port prop walk should move the stern/boat toward port');
+
+const starboardWalk = await evaluate(`(() => {
+  window.__dockwise.applyPreset('clear');
+  const slider = document.querySelector('#propWalk');
+  slider.value = -100;
+  slider.dispatchEvent(new Event('input', { bubbles: true }));
+  document.querySelector('#throttle').value = 100;
+  window.__dockwise.setEngine(-1);
+  for (let i = 0; i < 40; i += 1) window.__dockwise.step(0.05);
+  return { state: window.__dockwise.getState(), label: document.querySelector('#propWalkValue').textContent };
+})()`);
+assert(starboardWalk.state.y > 0.001, 'starboard prop walk should reverse lateral motion');
+assert(starboardWalk.label.includes('starboard'), 'prop-walk output should name the selected direction');
 
 const runResult = await evaluate(`(async () => {
   window.__dockwise.applyPreset('clear');
@@ -168,6 +181,7 @@ console.log(JSON.stringify({
   },
   fourLines,
   reverse: { x: reverseResult.x, y: reverseResult.y, heading: reverseResult.heading },
+  starboardWalk: { y: starboardWalk.state.y, label: starboardWalk.label },
   run: { time: runResult.state.time, x: runResult.state.x },
   persistence,
   mobile,

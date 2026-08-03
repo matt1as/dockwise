@@ -146,7 +146,10 @@ function updateRangeOutputs() {
   $('#throttleValue').textContent = `${controls.throttle.value}%`;
   const rudder = Number(controls.rudder.value);
   $('#rudderValue').textContent = `${rudder > 0 ? '+' : ''}${rudder}°`;
-  $('#propWalkValue').textContent = `${controls.propWalk.value}%`;
+  const propWalk = Number(controls.propWalk.value);
+  $('#propWalkValue').textContent = propWalk === 0
+    ? 'None'
+    : `${Math.abs(propWalk)}% ${propWalk > 0 ? 'port' : 'starboard'}`;
   $('#lineSlackValue').textContent = `${$('#lineSlack').value}%`;
 }
 
@@ -338,7 +341,7 @@ function drawArrow(fromWorld, force, color, label) {
 function drawForces() {
   if (!analysis) return;
   const forceSet = computeForces(state, currentControls());
-  const palette = { 'Engine thrust': '#70e0bb', 'Port prop walk': '#ffbb55', Rudder: '#ff8f6b', Wind: '#a88cff', 'Hull resistance': '#6d9299' };
+  const palette = { 'Engine thrust': '#70e0bb', 'Port prop walk': '#ffbb55', 'Starboard prop walk': '#ffbb55', Rudder: '#ff8f6b', Wind: '#a88cff', 'Hull resistance': '#6d9299' };
   for (const record of forceSet.records) {
     if (record.name.startsWith('Line')) continue;
     drawArrow(record.point, record.force, palette[record.name] || '#d6e0df', record.name);
