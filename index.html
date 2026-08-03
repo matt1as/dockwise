@@ -14,10 +14,27 @@
       <div><strong>Dockwise</strong><span>Trust the process</span></div>
     </div>
     <div class="model-pill"><span class="status-dot"></span>32 ft fin keel · S-drive · adjustable prop walk</div>
+    <nav class="mode-switch" aria-label="Dockwise mode">
+      <button type="button" data-app-mode="learn" aria-pressed="true">Learn</button>
+      <button type="button" data-app-mode="sandbox" aria-pressed="false">Sandbox</button>
+    </nav>
     <button id="analysisToggle" class="ghost-button" type="button" aria-pressed="true">Analysis on</button>
   </header>
 
-  <main class="app-shell">
+  <section id="learnScreen" class="learn-screen" aria-labelledby="learnTitle" tabindex="-1">
+    <div class="learn-hero">
+      <p class="eyebrow">Guided training</p>
+      <h1 id="learnTitle">Learn to dock by understanding the forces</h1>
+      <p>Go slowly. Watch which force acts where. Retry safely—the simulator is qualitative.</p>
+      <div class="learn-actions">
+        <button id="startFirstLesson" class="primary-button" type="button">Start first lesson</button>
+        <button id="skipToSandbox" class="secondary-button" type="button">Skip to Sandbox</button>
+      </div>
+    </div>
+    <div id="lessonList" class="lesson-list" aria-label="Lessons"></div>
+  </section>
+
+  <main id="sandboxScreen" class="app-shell" hidden>
     <aside class="panel controls-panel" aria-label="Simulation controls">
       <section>
         <div class="section-heading"><span>01</span><h2>Maneuver</h2></div>
@@ -79,11 +96,29 @@
 
     <section class="sim-area" aria-label="Top-down simulation">
       <div class="canvas-wrap">
+        <section id="lessonCoach" class="lesson-coach" aria-live="polite" hidden>
+          <div><p class="eyebrow">Current objective</p><h2 id="lessonTitle"></h2><p id="lessonObjective"></p></div>
+          <div class="lesson-progress"><span id="lessonProgress"></span><strong id="lessonHint"></strong></div>
+          <div id="lessonResult" class="lesson-result" hidden></div>
+          <div class="coach-actions"><button id="retryLesson" type="button">Retry</button><button id="nextLesson" type="button">Next lesson</button><button id="exitLesson" type="button">Exit lesson</button></div>
+        </section>
         <canvas id="simCanvas" aria-label="Top-down view of sailboat and dock"></canvas>
         <div class="compass" aria-hidden="true"><span>N</span><i></i></div>
         <div class="scale"><i></i><span>5 m</span></div>
         <div id="warning" class="warning" role="status" hidden></div>
         <div class="canvas-hint">Dock cleats are numbered west → east. Force arrows appear in analysis mode.</div>
+      </div>
+      <div id="lessonHelm" class="lesson-helm" aria-label="Lesson helm controls" hidden>
+        <div class="engine-pad" role="group" aria-label="Engine direction">
+          <button type="button" data-lesson-engine="-1">Astern</button><button type="button" data-lesson-engine="0">Neutral</button><button type="button" data-lesson-engine="1">Ahead</button>
+        </div>
+        <label for="lessonThrottle">Throttle <output id="lessonThrottleValue">35%</output></label>
+        <input id="lessonThrottle" type="range" min="0" max="100" value="35" aria-label="Lesson throttle">
+        <div class="rudder-pad" role="group" aria-label="Rudder">
+          <button type="button" data-lesson-rudder="-35">Port</button><button type="button" data-lesson-rudder="0">Center</button><button type="button" data-lesson-rudder="35">Starboard</button>
+        </div>
+        <output id="lessonRudderValue">Rudder 0°</output>
+        <small>Keyboard: ↑/↓ engine · Space neutral · ←/→ rudder · C center</small>
       </div>
       <div class="transport">
         <button id="reset" class="icon-button" type="button" title="Reset" aria-label="Reset">↺</button>
@@ -120,7 +155,9 @@
       <section>
         <div class="section-heading"><span>Setup</span><h2>Scenario</h2></div>
         <label>Scenario name<input id="scenarioName" type="text" value="My departure"></label>
-        <div class="button-row"><button id="saveScenario" type="button" class="secondary-button">Save</button><button id="loadScenario" type="button" class="secondary-button">Load</button></div>
+        <label class="scenario-library-label">Saved scenarios<select id="scenarioLibrary"></select></label>
+        <div class="button-row"><button id="saveScenario" type="button" class="secondary-button">Save new</button><button id="loadScenario" type="button" class="secondary-button">Load</button></div>
+        <div class="button-row"><button id="renameScenario" type="button" class="secondary-button">Rename</button><button id="deleteScenario" type="button" class="secondary-button">Delete</button></div>
         <p id="saveStatus" class="muted" aria-live="polite">Stored locally in this browser.</p>
       </section>
 

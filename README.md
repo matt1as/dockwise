@@ -1,6 +1,6 @@
 # Dockwise
 
-A working top-down browser simulator for rehearsing low-speed departures with a 32 ft fin-keel sailboat, single S-drive, aft/middle/forward boat cleats, and port prop walk in reverse.
+A working top-down browser trainer for learning and rehearsing low-speed docking with a 32 ft fin-keel sailboat, single S-drive, aft/middle/forward boat cleats, and adjustable prop walk.
 
 ## Public app
 
@@ -17,12 +17,16 @@ Open [http://127.0.0.1:4173](http://127.0.0.1:4173).
 
 ## Use
 
+First-time visitors start in **Learn**, which contains ten guided, retryable lessons. Lesson attempts and completions remain in this browser. During an active lesson, use the touch helm or the keyboard: Up/Down selects engine direction, Space selects neutral, Left/Right sets rudder, and C centers it. Keyboard shortcuts are ignored while typing in a form field.
+
+Choose **Sandbox** for free-form practice:
+
 1. Choose **Alongside**, **Bow-to**, or **Stern-to**. End-on modes start perpendicular to the quay with mirrored port/starboard line pairs.
 2. Select a line preset or connect your own lines between the aft, middle, or forward boat cleat, its port/starboard side, and dock cleats D1–D6.
 3. Select **Astern**, **Neutral**, or **Ahead**, then set throttle and rudder. Choose **Port**, **Off**, or **Starboard** for prop-walk direction and adjust its strength separately; 65% port matches the default boat profile.
 4. Optionally set wind/current speed and the direction each vector moves **toward**.
 5. Press **Run**, **Pause**, **Step**, or **Reset** and watch the boat, force vectors, line tensions, telemetry, and warnings.
-6. Release a line with its × button or save/load the full scenario locally.
+6. Release a line with its × button or save, load, rename, and delete scenarios in the local scenario library.
 
 The boat can also be dragged to a new starting position while paused.
 
@@ -30,6 +34,9 @@ The boat can also be dragged to a new starting position while paused.
 
 ```bash
 npm test
+npm run build
+npm run verify:build
+npm run test:browser
 ```
 
 The browser verification script uses Chrome DevTools Protocol and expects:
@@ -37,7 +44,7 @@ The browser verification script uses Chrome DevTools Protocol and expects:
 - the app at `http://127.0.0.1:4173`, and
 - headless Chrome with remote debugging on port `9222`.
 
-It validates rendered canvas dimensions, presets, four active lines, ahead/astern motion, port prop walk, run/pause, scenario persistence, accessibility state, mobile responsiveness, and runtime exceptions.
+It validates first-run Learn onboarding, all ten lesson cards, deterministic lesson start/retry/failure, synchronized keyboard/touch controls, mode persistence, rendered Sandbox canvas dimensions, presets, berth modes, ahead/astern motion, signed prop walk, run/pause, safe scenario persistence/rename/delete, portrait and landscape 44 px lesson targets, mobile responsiveness, and runtime exceptions.
 
 ## Model limitations
 

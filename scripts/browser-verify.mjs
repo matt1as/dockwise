@@ -43,26 +43,114 @@ function assert(condition, message) {
 await send('Runtime.enable');
 await send('Page.enable');
 await send('Console.enable');
+await send('Emulation.setDeviceMetricsOverride', { width: 1440, height: 900, deviceScaleFactor: 1, mobile: false });
+await evaluate(`localStorage.clear()`);
 await send('Page.reload', { ignoreCache: true });
 await sleep(900);
 
 const initial = await evaluate(`({
   title: document.title,
   ready: document.readyState,
-  lines: window.__dockwise.getLines().length,
-  canvasWidth: document.querySelector('#simCanvas').width,
-  canvasHeight: document.querySelector('#simCanvas').height,
   boatModel: document.querySelector('.model-pill').textContent.trim(),
   slogan: document.querySelector('.brand div span').textContent.trim(),
-  guidanceTitle: document.querySelector('#motionTitle').textContent.trim()
+  modes: [...document.querySelectorAll('[data-app-mode]')].map(button => button.textContent.trim()),
+  learnVisible: !document.querySelector('#learnScreen')?.hidden,
+  sandboxHidden: document.querySelector('#sandboxScreen').hidden,
+  lessonCount: document.querySelectorAll('[data-lesson-id]').length,
+  storage: window.__dockwise.getStorageState()
 })`);
 assert(initial.ready === 'complete', 'page must finish loading');
 assert(initial.title.includes('Dockwise'), 'title should identify Dockwise');
-assert(initial.lines === 1, 'aft-spring preset should start with one line');
-assert(initial.canvasWidth > 500 && initial.canvasHeight > 400, 'canvas should be rendered at useful resolution');
 assert(initial.boatModel.includes('32 ft') && initial.boatModel.includes('adjustable prop walk'), 'boat model should be visible');
 assert(initial.slogan === 'Trust the process', 'Dockwise slogan should match the requested wording');
-assert(initial.guidanceTitle.includes('Holding'), 'plain-language maneuver guidance should be visible');
+assert(initial.modes.join(',') === 'Learn,Sandbox', 'Learn and Sandbox navigation should be visible');
+assert(initial.learnVisible && initial.sandboxHidden, 'Learn should be the first-run default');
+assert(initial.lessonCount === 10, 'Learn should list exactly ten lessons');
+assert(!initial.storage.onboardingComplete && initial.storage.lastMode === 'learn', 'first-run store should preserve Learn onboarding state');
+await fs.mkdir('test-artifacts', { recursive: true });
+const learnShot = await send('Page.captureScreenshot', { format: 'png', captureBeyondViewport: false });
+await fs.writeFile('test-artifacts/dockwise-learn.png', Buffer.from(learnShot.data, 'base64'));
+
+const lessonStart = await evaluate(`(() => {
+  document.querySelector('#startFirstLesson').click();
+  const before = window.__dockwise.getTrainingState();
+  window.__dockwise.step(0.05);
+  const after = window.__dockwise.getTrainingState();
+  document.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowUp', bubbles: true }));
+  document.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true }));
+  const synchronized = {
+    engine: document.querySelector('[data-engine="1"]').classList.contains('active') && document.querySelector('[data-lesson-engine="1"]').classList.contains('active'),
+    rudder: document.querySelector('#rudder').value,
+    touchRudder: document.querySelector('[data-lesson-rudder="35"]').classList.contains('active')
+  };
+  const input = document.querySelector('#lessonThrottle');
+  input.value = 42;
+  input.dispatchEvent(new Event('input', { bubbles: true }));
+  const throttle = { sandbox: document.querySelector('#throttle').value, lesson: input.value, output: document.querySelector('#lessonThrottleValue').textContent };
+  document.querySelector('[data-lesson-engine="0"]').click();
+  const formInput = document.querySelector('#scenarioName');
+  formInput.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowUp', bubbles: true }));
+  const formInputIgnored = document.querySelector('[data-lesson-engine="0"]').classList.contains('active');
+  return {
+    before, after, synchronized, throttle, formInputIgnored,
+    coachVisible: !document.querySelector('#lessonCoach').hidden,
+    helmVisible: !document.querySelector('#lessonHelm').hidden,
+    objective: document.querySelector('#lessonObjective').textContent.trim(),
+    hint: document.querySelector('#lessonHint').textContent.trim(),
+    progress: document.querySelector('#lessonProgress').textContent.trim(),
+    attempts: window.__dockwise.getStorageState().lessonProgress['momentum-neutral'].attempts
+  };
+})()`);
+assert(lessonStart.before.lesson.id === 'momentum-neutral' && lessonStart.before.status === 'running', 'first lesson should start paused and deterministically');
+assert(!lessonStart.before.running && lessonStart.after.elapsed === 0.05, 'fixed steps should be observed by the training evaluator');
+assert(lessonStart.coachVisible && lessonStart.helmVisible, 'active lesson should expose coach and touch helm');
+assert(lessonStart.objective && lessonStart.hint && lessonStart.progress, 'lesson objective, hint, and progress should be accessible');
+assert(lessonStart.synchronized.engine && lessonStart.synchronized.rudder === '35' && lessonStart.synchronized.touchRudder, 'keyboard helm should synchronize lesson and Sandbox controls');
+assert(lessonStart.throttle.sandbox === '42' && lessonStart.throttle.lesson === '42' && lessonStart.throttle.output === '42%', 'touch throttle should synchronize both control surfaces');
+assert(lessonStart.formInputIgnored, 'lesson keyboard controls should ignore shortcuts from form inputs');
+assert(lessonStart.attempts === 1, 'starting a lesson should persist one attempt');
+
+const retry = await evaluate(`(() => {
+  document.querySelector('#retryLesson').click();
+  const training = window.__dockwise.getTrainingState();
+  const state = window.__dockwise.getState();
+  const attempts = window.__dockwise.getStorageState().lessonProgress['momentum-neutral'].attempts;
+  window.__dockwise.step(181);
+  const failure = {
+    training: window.__dockwise.getTrainingState(),
+    role: document.querySelector('#lessonCoach').getAttribute('role'),
+    progress: document.querySelector('#lessonProgress').textContent,
+    dimensions: [...document.querySelectorAll('#lessonResult .result-dimension strong')].map(node => node.textContent)
+  };
+  document.querySelector('#exitLesson').click();
+  return { training, state, attempts, failure, learnVisible: !document.querySelector('#learnScreen').hidden };
+})()`);
+assert(retry.training.elapsed === 0 && !retry.training.running, 'Retry should restore the deterministic paused lesson');
+assert(retry.state.x === -4 && retry.state.y === 2.8 && retry.state.heading === 0, 'Retry should restore the lesson setup through shared setters');
+assert(retry.failure.training.status === 'failed' && retry.failure.training.failureReason === 'time-limit', 'lesson failure should be deterministic after an observed fixed step');
+assert(retry.failure.role === 'alert' && retry.failure.progress.includes('time-limit'), 'lesson failure should be announced accessibly');
+assert(retry.failure.dimensions.length === 3 && retry.failure.dimensions[0].startsWith('Control:') && retry.failure.dimensions[1].startsWith('Smoothness:') && retry.failure.dimensions[2].startsWith('Accuracy:'), 'lesson result should keep Control, Smoothness, and Accuracy separate');
+assert(retry.attempts === 2 && retry.learnVisible, 'Retry should persist another attempt and Exit should return to Learn');
+
+await evaluate(`document.querySelector('#skipToSandbox').click()`);
+await sleep(300);
+const sandboxInitial = await evaluate(`({
+  mode: window.__dockwise.getAppMode(),
+  storage: window.__dockwise.getStorageState(),
+  lines: window.__dockwise.getLines().length,
+  canvasWidth: document.querySelector('#simCanvas').width,
+  canvasHeight: document.querySelector('#simCanvas').height,
+  guidanceTitle: document.querySelector('#motionTitle').textContent.trim()
+})`);
+assert(sandboxInitial.mode === 'sandbox' && sandboxInitial.storage.onboardingComplete && sandboxInitial.storage.lastMode === 'sandbox', 'Skip should enter and persist Sandbox mode');
+assert(sandboxInitial.lines === 1, 'aft-spring preset should start with one line');
+assert(sandboxInitial.canvasWidth > 500 && sandboxInitial.canvasHeight > 400, `canvas should be rendered at useful resolution (measured ${sandboxInitial.canvasWidth}×${sandboxInitial.canvasHeight})`);
+assert(sandboxInitial.guidanceTitle.includes('Holding'), 'plain-language maneuver guidance should be visible');
+await send('Page.reload', { ignoreCache: true });
+await sleep(500);
+const persistedMode = await evaluate(`({ mode: window.__dockwise.getAppMode(), sandboxVisible: !document.querySelector('#sandboxScreen').hidden, canvasWidth: document.querySelector('#simCanvas').width, canvasHeight: document.querySelector('#simCanvas').height })`);
+assert(persistedMode.mode === 'sandbox' && persistedMode.sandboxVisible, 'Sandbox choice should survive reload');
+assert(persistedMode.canvasWidth > 500 && persistedMode.canvasHeight > 400, 'persisted Sandbox should restore a useful canvas');
 
 const endOnBerths = await evaluate(`(() => {
   window.__dockwise.setBerthMode('bow-to');
@@ -152,6 +240,21 @@ assert(persistence.name === 'Browser verified departure', 'load should restore s
 assert(persistence.status.includes('Loaded'), 'UI should confirm loading');
 assert(persistence.propDirection === 'Starboard', 'load should restore the user-friendly prop-walk direction choice');
 
+const scenarioManagement = await evaluate(`(() => {
+  document.querySelector('#scenarioName').value = '<img src=x onerror="window.__unsafe=1">';
+  document.querySelector('#renameScenario').click();
+  const renamed = {
+    text: document.querySelector('#scenarioLibrary option:checked').textContent,
+    injectedImage: Boolean(document.querySelector('#scenarioLibrary img')),
+    unsafe: window.__unsafe || 0
+  };
+  window.confirm = () => true;
+  document.querySelector('#deleteScenario').click();
+  return { renamed, remaining: window.__dockwise.getStorageState().scenarios.length, status: document.querySelector('#saveStatus').textContent };
+})()`);
+assert(scenarioManagement.renamed.text.startsWith('<img') && !scenarioManagement.renamed.injectedImage && !scenarioManagement.renamed.unsafe, 'scenario names should render as safe text');
+assert(scenarioManagement.remaining === 0 && scenarioManagement.status.includes('deleted'), 'scenario rename and delete should update the v2 store and UI');
+
 const analysisToggle = await evaluate(`(() => {
   const button = document.querySelector('#analysisToggle');
   button.click();
@@ -172,7 +275,6 @@ assert(mobile.canvasHeight >= 450, 'mobile simulation canvas should remain usabl
 assert(mobile.controlsBelowCanvas, 'mobile controls should stack below the canvas');
 
 const mobileShot = await send('Page.captureScreenshot', { format: 'png', captureBeyondViewport: false });
-await fs.mkdir('test-artifacts', { recursive: true });
 await fs.writeFile('test-artifacts/dockwise-mobile.png', Buffer.from(mobileShot.data, 'base64'));
 
 await evaluate(`document.querySelector('.prop-walk-direction').scrollIntoView({ block: 'center' })`);
@@ -205,9 +307,52 @@ assert(mobileGuidance.summary.length > 40, 'mobile guidance should contain a use
 const mobileGuidanceShot = await send('Page.captureScreenshot', { format: 'png', captureBeyondViewport: false });
 await fs.writeFile('test-artifacts/dockwise-mobile-guidance.png', Buffer.from(mobileGuidanceShot.data, 'base64'));
 
+await evaluate(`window.__dockwise.startLesson('rudder-flow')`);
+await sleep(200);
+await evaluate(`document.querySelector('#lessonHelm').scrollIntoView({ block: 'center' })`);
+await sleep(150);
+const portraitLesson = await evaluate(`(() => ({
+  overflow: document.documentElement.scrollWidth - innerWidth,
+  targets: [...document.querySelectorAll('#lessonHelm button')].map(button => {
+    const rect = button.getBoundingClientRect();
+    return { label: button.textContent.trim(), width: rect.width, height: rect.height };
+  }),
+  coachVisible: !document.querySelector('#lessonCoach').hidden,
+  helmVisible: !document.querySelector('#lessonHelm').hidden
+}))()`);
+assert(portraitLesson.overflow <= 1, 'portrait lesson layout should not overflow horizontally');
+assert(portraitLesson.coachVisible && portraitLesson.helmVisible, 'portrait lesson should keep coach and touch helm visible');
+assert(portraitLesson.targets.length === 6 && portraitLesson.targets.every(target => target.width >= 44 && target.height >= 44), 'portrait lesson helm targets should be at least 44px');
+const portraitLessonShot = await send('Page.captureScreenshot', { format: 'png', captureBeyondViewport: false });
+await fs.writeFile('test-artifacts/dockwise-mobile-lesson.png', Buffer.from(portraitLessonShot.data, 'base64'));
+
+await send('Emulation.setDeviceMetricsOverride', { width: 844, height: 390, deviceScaleFactor: 2, mobile: true });
+await sleep(250);
+await evaluate(`document.querySelector('#lessonHelm').scrollIntoView({ block: 'center' })`);
+await sleep(150);
+const landscapeLesson = await evaluate(`(() => ({
+  innerWidth,
+  scrollWidth: document.documentElement.scrollWidth,
+  targets: [...document.querySelectorAll('#lessonHelm button')].map(button => {
+    const rect = button.getBoundingClientRect();
+    return { label: button.textContent.trim(), width: rect.width, height: rect.height };
+  })
+}))()`);
+assert(landscapeLesson.scrollWidth <= landscapeLesson.innerWidth + 1, 'landscape lesson layout should not overflow horizontally');
+assert(landscapeLesson.targets.length === 6 && landscapeLesson.targets.every(target => target.width >= 44 && target.height >= 44), 'landscape lesson helm targets should be at least 44px');
+const landscapeLessonShot = await send('Page.captureScreenshot', { format: 'png', captureBeyondViewport: false });
+await fs.writeFile('test-artifacts/dockwise-landscape-lesson.png', Buffer.from(landscapeLessonShot.data, 'base64'));
+await evaluate(`document.querySelector('#exitLesson').click(); window.__dockwise.setAppMode('sandbox')`);
+
 await send('Emulation.setDeviceMetricsOverride', { width: 1440, height: 900, deviceScaleFactor: 1, mobile: false });
 await sleep(300);
-await evaluate(`scrollTo(0, 0)`);
+await evaluate(`(() => {
+  scrollTo(0, 0);
+  document.querySelector('#scenarioName').value = 'My departure';
+  document.querySelector('#saveStatus').textContent = 'Stored locally in this browser.';
+  const analysis = document.querySelector('#analysisToggle');
+  if (analysis.getAttribute('aria-pressed') === 'false') analysis.click();
+})()`);
 await evaluate(`window.__dockwise.setBerthMode('bow-to')`);
 await sleep(150);
 const bowShot = await send('Page.captureScreenshot', { format: 'png', captureBeyondViewport: false });
@@ -224,6 +369,8 @@ assert(exceptions.length === 0, `runtime exceptions: ${exceptions.join('; ')}`);
 console.log(JSON.stringify({
   status: 'PASS',
   initial,
+  lessonStart,
+  retry,
   endOnBerths: {
     bow: { heading: endOnBerths.bow.state.heading, lines: endOnBerths.bow.lines.length },
     stern: { heading: endOnBerths.stern.state.heading, lines: endOnBerths.stern.lines.length }
@@ -233,15 +380,21 @@ console.log(JSON.stringify({
   starboardWalk: { y: starboardWalk.state.y, label: starboardWalk.label, guidance: starboardWalk.guidance },
   run: { time: runResult.state.time, x: runResult.state.x },
   persistence,
+  scenarioManagement,
   mobile,
   mobileControls,
   mobileGuidance,
+  portraitLesson,
+  landscapeLesson,
   exceptions,
   screenshots: [
+    'test-artifacts/dockwise-learn.png',
     'test-artifacts/dockwise-desktop.png',
     'test-artifacts/dockwise-mobile.png',
     'test-artifacts/dockwise-mobile-controls.png',
     'test-artifacts/dockwise-mobile-guidance.png',
+    'test-artifacts/dockwise-mobile-lesson.png',
+    'test-artifacts/dockwise-landscape-lesson.png',
     'test-artifacts/dockwise-bow-to.png',
     'test-artifacts/dockwise-stern-to.png'
   ]

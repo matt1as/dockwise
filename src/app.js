@@ -5,9 +5,10 @@ import {
   boatPointToWorld,
   computeForces,
   stepSimulation,
-  serializeScenario,
-  deserializeScenario,
 } from './physics.js';
+import { LESSONS, getLesson } from './lessons.js';
+import { createTrainingSession, observeTrainingStep, summarizeTrainingSession } from './training.js';
+import { createDockwiseStore } from './storage.js';
 
 const canvas = document.querySelector('#simCanvas');
 const ctx = canvas.getContext('2d');
@@ -34,6 +35,12 @@ let lastFrame = performance.now();
 let accumulator = 0;
 let trail = [];
 let dragging = false;
+let appMode = 'learn';
+let activeLesson = null;
+let trainingSession = null;
+let trainingOutcomeStored = false;
+let sandboxSnapshot = null;
+const store = createDockwiseStore(localStorage);
 let view = { width: 0, height: 0, scale: 42, originX: 0, originY: 0, dpr: 1 };
 
 const controls = {
@@ -120,6 +127,23 @@ function setBerthMode(mode) {
 function setEngine(value) {
   engine = Number(value);
   $$('[data-engine]').forEach((button) => button.classList.toggle('active', Number(button.dataset.engine) === engine));
+  $$('[data-lesson-engine]').forEach((button) => button.classList.toggle('active', Number(button.dataset.lessonEngine) === engine));
+  updateGuidance();
+}
+
+function setThrottle(value) {
+  const percent = Math.max(0, Math.min(100, Number(value)));
+  controls.throttle.value = percent;
+  $('#lessonThrottle').value = percent;
+  updateRangeOutputs();
+  updateGuidance();
+}
+
+function setRudder(value) {
+  const degrees = Math.max(-35, Math.min(35, Number(value)));
+  controls.rudder.value = degrees;
+  $$('[data-lesson-rudder]').forEach((button) => button.classList.toggle('active', Number(button.dataset.lessonRudder) === degrees));
+  updateRangeOutputs();
   updateGuidance();
 }
 
@@ -158,8 +182,10 @@ function applyPreset(name) {
 
 function updateRangeOutputs() {
   $('#throttleValue').textContent = `${controls.throttle.value}%`;
+  $('#lessonThrottleValue').textContent = `${controls.throttle.value}%`;
   const rudder = Number(controls.rudder.value);
   $('#rudderValue').textContent = `${rudder > 0 ? '+' : ''}${rudder}°`;
+  $('#lessonRudderValue').textContent = `Rudder ${rudder > 0 ? '+' : ''}${rudder}°`;
   const propWalk = Number(controls.propWalk.value);
   $('#propWalkValue').textContent = propWalkDirection === 0
     ? 'Off'
@@ -239,6 +265,179 @@ function updateOutputs() {
   }
   renderLineList();
   updateGuidance();
+}
+
+function renderLessonList() {
+  const cards = LESSONS.map((lesson) => {
+    const progress = store.getProgress(lesson.id);
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'lesson-card';
+    button.dataset.lessonId = lesson.id;
+    const number = document.createElement('span');
+    number.className = 'lesson-number';
+    number.textContent = String(lesson.order).padStart(2, '0');
+    const copy = document.createElement('span');
+    const title = document.createElement('strong'); title.textContent = lesson.title;
+    const briefing = document.createElement('small'); briefing.textContent = lesson.briefing;
+    copy.append(title, briefing);
+    const meta = document.createElement('span');
+    meta.className = 'lesson-meta';
+    meta.textContent = `${progress.completed ? 'Completed' : lesson.durationLabel}${progress.attempts ? ` · ${progress.attempts} attempt${progress.attempts === 1 ? '' : 's'}` : ''}`;
+    button.append(number, copy, meta);
+    button.addEventListener('click', () => startLesson(lesson.id));
+    return button;
+  });
+  $('#lessonList').replaceChildren(...cards);
+}
+
+function renderScenarioLibrary(selectedId) {
+  const scenarios = store.listScenarios();
+  const options = scenarios.map((entry) => {
+    const option = document.createElement('option');
+    option.value = entry.id;
+    option.textContent = entry.name;
+    return option;
+  });
+  if (!options.length) {
+    const option = document.createElement('option');
+    option.value = '';
+    option.textContent = 'No saved scenarios';
+    options.push(option);
+  }
+  $('#scenarioLibrary').replaceChildren(...options);
+  if (selectedId && scenarios.some((entry) => entry.id === selectedId)) $('#scenarioLibrary').value = selectedId;
+}
+
+function setAppMode(mode, { persist = true, focus = true } = {}) {
+  if (!['learn', 'sandbox'].includes(mode)) throw new Error(`Unsupported app mode: ${mode}`);
+  if (activeLesson) {
+    if (sandboxSnapshot) loadScenario(sandboxSnapshot);
+    activeLesson = null;
+    trainingSession = null;
+    sandboxSnapshot = null;
+    running = false;
+    document.body.classList.remove('training');
+    $('#lessonCoach').hidden = true;
+    $('#lessonHelm').hidden = true;
+  }
+  appMode = mode;
+  $('#learnScreen').hidden = mode !== 'learn';
+  $('#sandboxScreen').hidden = mode !== 'sandbox';
+  $$('[data-app-mode]').forEach((button) => { button.ariaPressed = String(button.dataset.appMode === mode); });
+  if (persist) store.setMode(mode);
+  if (mode === 'sandbox') {
+    requestAnimationFrame(() => { resizeCanvas(); updateOutputs(); });
+  } else {
+    renderLessonList();
+  }
+  if (focus) (mode === 'learn' ? $('#learnScreen') : $('#sandboxScreen')).focus?.({ preventScroll: true });
+}
+
+function renderLessonCoach() {
+  if (!activeLesson || !trainingSession) return;
+  const coach = $('#lessonCoach');
+  coach.hidden = false;
+  $('#lessonTitle').textContent = activeLesson.title;
+  $('#lessonObjective').textContent = activeLesson.steps[Math.min(activeLesson.steps.length - 1, trainingSession.status === 'running' ? 0 : activeLesson.steps.length - 1)];
+  const required = activeLesson.success.stableFor || 0;
+  $('#lessonProgress').textContent = trainingSession.status === 'running'
+    ? `Stable target: ${trainingSession.stableTargetDuration.toFixed(1)} / ${required.toFixed(1)} s`
+    : trainingSession.status === 'completed' ? 'Lesson completed' : `Lesson failed: ${trainingSession.failureReason}`;
+  $('#lessonHint').textContent = activeLesson.hints[0];
+  const result = $('#lessonResult');
+  result.hidden = trainingSession.status === 'running';
+  coach.removeAttribute('role');
+  if (trainingSession.status !== 'running') {
+    if (trainingSession.status === 'failed') coach.setAttribute('role', 'alert');
+    const summary = summarizeTrainingSession(trainingSession, activeLesson);
+    const dimensions = [
+      ['Control', summary.control.label, `${summary.control.collisions} contacts · ${(summary.control.peakLineLoad / 1000).toFixed(1)} kN peak`],
+      ['Smoothness', summary.smoothness.label, `${(summary.smoothness.peakSpeed * 1.94384).toFixed(1)} kn peak · ${summary.smoothness.throttleReversals} reversals`],
+      ['Accuracy', summary.accuracy.label, summary.accuracy.distance === null ? 'Procedure target' : `${summary.accuracy.distance.toFixed(1)} m · ${summary.accuracy.headingErrorDeg.toFixed(1)}°`],
+    ];
+    result.replaceChildren(...dimensions.map(([name, label, detail]) => {
+      const item = document.createElement('div'); item.className = 'result-dimension';
+      const heading = document.createElement('strong'); heading.textContent = `${name}: ${label}`;
+      const measurement = document.createElement('span'); measurement.textContent = detail;
+      item.append(heading, measurement); return item;
+    }));
+    if (!trainingOutcomeStored && trainingSession.status === 'completed') {
+      store.recordCompletion(activeLesson.id, summary);
+      trainingOutcomeStored = true;
+      renderLessonList();
+    }
+  } else result.replaceChildren();
+  $('#nextLesson').hidden = trainingSession.status !== 'completed' || activeLesson.order === LESSONS.length;
+}
+
+function observeActiveTraining(dt) {
+  if (!activeLesson || !trainingSession) return;
+  const previousStatus = trainingSession.status;
+  trainingSession = observeTrainingStep(trainingSession, activeLesson, {
+    state, controls: currentControls(), lineResults: state.lineResults || [], dt,
+  });
+  if (trainingSession.status !== previousStatus) running = false;
+  renderLessonCoach();
+}
+
+function applyLessonSetup(setup) {
+  setBerthMode(setup.berthMode);
+  applyPreset(setup.preset);
+  state = createInitialState(setup.state);
+  lines = [];
+  lineCounter = 0;
+  for (const specification of setup.lines || []) {
+    lines.push(makeLine(specification.boatCleat, specification.dockCleat, specification.slackPercent, specification.boatSide));
+  }
+  setEngine(setup.controls.engine);
+  setThrottle(setup.controls.throttle * 100);
+  setRudder(setup.controls.rudderDeg);
+  controls.propWalk.value = Math.abs(setup.controls.propWalk) * 100;
+  setPropWalkDirection(Math.sign(setup.controls.propWalk));
+  controls.windSpeed.value = setup.wind.speed;
+  controls.windDirection.value = setup.wind.directionDeg;
+  controls.currentSpeed.value = setup.current.speed;
+  controls.currentDirection.value = setup.current.directionDeg;
+  running = false;
+  trail = [];
+  accumulator = 0;
+  $('#playPause').textContent = '▶ Run';
+  renderLineList();
+  updateRangeOutputs();
+}
+
+function startLesson(lessonId) {
+  const lesson = getLesson(lessonId);
+  if (!activeLesson) sandboxSnapshot = captureScenario();
+  activeLesson = lesson;
+  trainingSession = createTrainingSession(lesson, lesson.setup.state);
+  trainingOutcomeStored = false;
+  store.recordAttempt(lesson.id);
+  applyLessonSetup(lesson.setup);
+  appMode = 'learn';
+  $('#learnScreen').hidden = true;
+  $('#sandboxScreen').hidden = false;
+  $$('[data-app-mode]').forEach((button) => { button.ariaPressed = String(button.dataset.appMode === 'learn'); });
+  document.body.classList.add('training');
+  $('#lessonHelm').hidden = false;
+  renderLessonCoach();
+  resizeCanvas();
+  updateOutputs();
+  const coach = $('#lessonCoach'); coach.tabIndex = -1; coach.focus({ preventScroll: true });
+  return clone(trainingSession);
+}
+
+function exitLesson() {
+  running = false;
+  if (sandboxSnapshot) loadScenario(sandboxSnapshot);
+  activeLesson = null;
+  trainingSession = null;
+  sandboxSnapshot = null;
+  document.body.classList.remove('training');
+  $('#lessonCoach').hidden = true;
+  $('#lessonHelm').hidden = true;
+  setAppMode('learn');
 }
 
 function renderLineList() {
@@ -426,6 +625,7 @@ function tick(now) {
     accumulator += elapsed * Number(controls.simSpeed.value);
     while (accumulator >= 1 / 60) {
       state = stepSimulation(state, currentControls(), 1 / 60);
+      observeActiveTraining(1 / 60);
       accumulator -= 1 / 60;
     }
     if (!trail.length || distance(trail[trail.length - 1], state) > 0.08) {
@@ -438,10 +638,15 @@ function tick(now) {
 }
 
 $$('[data-engine]').forEach((button) => button.addEventListener('click', () => setEngine(button.dataset.engine)));
+$$('[data-lesson-engine]').forEach((button) => button.addEventListener('click', () => setEngine(button.dataset.lessonEngine)));
+$$('[data-lesson-rudder]').forEach((button) => button.addEventListener('click', () => setRudder(button.dataset.lessonRudder)));
 $$('[data-prop-walk-direction]').forEach((button) => button.addEventListener('click', () => setPropWalkDirection(button.dataset.propWalkDirection)));
 $$('[data-berth]').forEach((button) => button.addEventListener('click', () => setBerthMode(button.dataset.berth)));
 $$('[data-preset]').forEach((button) => button.addEventListener('click', () => applyPreset(button.dataset.preset)));
-Object.values(controls).forEach((element) => element.addEventListener('input', () => { updateRangeOutputs(); updateGuidance(); }));
+Object.entries(controls).filter(([name]) => !['throttle', 'rudder'].includes(name)).forEach(([, element]) => element.addEventListener('input', () => { updateRangeOutputs(); updateGuidance(); }));
+controls.throttle.addEventListener('input', () => setThrottle(controls.throttle.value));
+controls.rudder.addEventListener('input', () => setRudder(controls.rudder.value));
+$('#lessonThrottle').addEventListener('input', () => setThrottle($('#lessonThrottle').value));
 $('#lineSlack').addEventListener('input', updateRangeOutputs);
 $('#addLine').addEventListener('click', () => {
   lines.push(makeLine($('#boatCleat').value, $('#dockCleat').value, Number($('#lineSlack').value), $('#boatSide').value));
@@ -455,40 +660,69 @@ $('#playPause').addEventListener('click', () => {
 });
 $('#step').addEventListener('click', () => {
   running = false; $('#playPause').textContent = '▶ Run';
-  state = stepSimulation(state, currentControls(), 0.05); updateOutputs();
+  state = stepSimulation(state, currentControls(), 0.05); observeActiveTraining(0.05); updateOutputs();
 });
 $('#reset').addEventListener('click', resetBoat);
 $('#analysisToggle').addEventListener('click', () => {
   analysis = !analysis; $('#analysisToggle').ariaPressed = String(analysis); $('#analysisToggle').textContent = `Analysis ${analysis ? 'on' : 'off'}`;
 });
 $('#saveScenario').addEventListener('click', () => {
-  const scenario = { name: $('#scenarioName').value || 'Saved departure', state: clone(state), controls: { ...currentControls(), lines: undefined }, lines: clone(lines) };
-  localStorage.setItem('dockwise-scenario', serializeScenario(scenario));
-  $('#saveStatus').textContent = `Saved “${scenario.name}”.`;
-});
-$('#loadScenario').addEventListener('click', () => {
-  const saved = localStorage.getItem('dockwise-scenario');
-  if (!saved) { $('#saveStatus').textContent = 'No saved scenario yet.'; return; }
+  const scenario = captureScenario();
   try {
-    const scenario = deserializeScenario(saved);
-    const c = scenario.controls || {};
-    berthMode = ['alongside', 'bow-to', 'stern-to'].includes(c.berthMode) ? c.berthMode : 'alongside';
-    state = createInitialState(scenario.state); lines = scenario.lines || [];
-    lineCounter = lines.reduce((max, line) => Math.max(max, typeof line.id === 'string' ? Number(line.id.slice(1)) || 0 : 0), 0);
-    $$('[data-berth]').forEach((button) => button.classList.toggle('active', button.dataset.berth === berthMode));
-    setEngine(c.engine || 0);
-    if (Number.isFinite(c.throttle)) controls.throttle.value = c.throttle * 100;
-    if (Number.isFinite(c.rudderDeg)) controls.rudder.value = c.rudderDeg;
-    if (Number.isFinite(c.propWalk)) {
-      controls.propWalk.value = Math.abs(c.propWalk) * 100;
-      setPropWalkDirection(Math.sign(c.propWalk));
-    }
-    if (c.wind) { controls.windSpeed.value = c.wind.speed; controls.windDirection.value = c.wind.directionDeg; }
-    if (c.current) { controls.currentSpeed.value = c.current.speed; controls.currentDirection.value = c.current.directionDeg; }
-    $('#scenarioName').value = scenario.name || 'Loaded departure';
-    running = false; $('#playPause').textContent = '▶ Run'; resizeCanvas(); updateRangeOutputs(); updateOutputs();
-    $('#saveStatus').textContent = `Loaded “${scenario.name}”.`;
-  } catch { $('#saveStatus').textContent = 'Saved scenario is invalid.'; }
+    const entry = store.saveScenario(scenario);
+    renderScenarioLibrary(entry.id);
+    $('#saveStatus').textContent = `Saved “${entry.name}”.`;
+  } catch { $('#saveStatus').textContent = 'Scenario could not be saved.'; }
+});
+
+function captureScenario() {
+  return {
+    name: $('#scenarioName').value || 'Saved departure',
+    state: clone(state),
+    controls: { ...currentControls(), lines: undefined },
+    lines: clone(lines),
+  };
+}
+
+function loadScenario(scenario) {
+  const c = scenario.controls || {};
+  berthMode = ['alongside', 'bow-to', 'stern-to'].includes(c.berthMode) ? c.berthMode : 'alongside';
+  state = createInitialState(scenario.state); lines = scenario.lines || [];
+  lineCounter = lines.reduce((max, line) => Math.max(max, typeof line.id === 'string' ? Number(line.id.slice(1)) || 0 : 0), 0);
+  $$('[data-berth]').forEach((button) => button.classList.toggle('active', button.dataset.berth === berthMode));
+  setEngine(c.engine || 0);
+  if (Number.isFinite(c.throttle)) setThrottle(c.throttle * 100);
+  if (Number.isFinite(c.rudderDeg)) setRudder(c.rudderDeg);
+  if (Number.isFinite(c.propWalk)) {
+    controls.propWalk.value = Math.abs(c.propWalk) * 100;
+    setPropWalkDirection(Math.sign(c.propWalk));
+  }
+  if (c.wind) { controls.windSpeed.value = c.wind.speed; controls.windDirection.value = c.wind.directionDeg; }
+  if (c.current) { controls.currentSpeed.value = c.current.speed; controls.currentDirection.value = c.current.directionDeg; }
+  $('#scenarioName').value = scenario.name || 'Loaded departure';
+  running = false; $('#playPause').textContent = '▶ Run'; resizeCanvas(); updateRangeOutputs(); updateOutputs();
+}
+
+$('#loadScenario').addEventListener('click', () => {
+  const entry = store.listScenarios().find((value) => value.id === $('#scenarioLibrary').value);
+  if (!entry) { $('#saveStatus').textContent = 'No saved scenario yet.'; return; }
+  loadScenario(entry.scenario);
+  $('#saveStatus').textContent = `Loaded “${entry.name}”.`;
+});
+$('#renameScenario').addEventListener('click', () => {
+  const id = $('#scenarioLibrary').value;
+  if (!id) return;
+  if (store.renameScenario(id, $('#scenarioName').value)) {
+    renderScenarioLibrary(id);
+    $('#saveStatus').textContent = 'Scenario renamed.';
+  }
+});
+$('#deleteScenario').addEventListener('click', () => {
+  const id = $('#scenarioLibrary').value;
+  if (!id || !window.confirm('Delete this saved scenario?')) return;
+  store.deleteScenario(id);
+  renderScenarioLibrary();
+  $('#saveStatus').textContent = 'Scenario deleted.';
 });
 
 canvas.addEventListener('pointerdown', (event) => {
@@ -509,15 +743,46 @@ canvas.addEventListener('pointermove', (event) => {
 canvas.addEventListener('pointerup', () => { dragging = false; });
 window.addEventListener('resize', resizeCanvas);
 
+$$('[data-app-mode]').forEach((button) => button.addEventListener('click', () => {
+  store.completeOnboarding();
+  setAppMode(button.dataset.appMode);
+}));
+$('#skipToSandbox').addEventListener('click', () => { store.completeOnboarding(); setAppMode('sandbox'); });
+$('#startFirstLesson').addEventListener('click', () => { store.completeOnboarding(); startLesson(LESSONS[0].id); });
+$('#retryLesson').addEventListener('click', () => { if (activeLesson) startLesson(activeLesson.id); });
+$('#exitLesson').addEventListener('click', exitLesson);
+$('#nextLesson').addEventListener('click', () => {
+  if (activeLesson && activeLesson.order < LESSONS.length) startLesson(LESSONS[activeLesson.order].id);
+});
+window.addEventListener('keydown', (event) => {
+  if (!activeLesson || event.metaKey || event.ctrlKey || event.altKey) return;
+  const target = event.target;
+  if (target instanceof HTMLInputElement || target instanceof HTMLSelectElement || target instanceof HTMLTextAreaElement || target?.isContentEditable) return;
+  const commands = {
+    ArrowUp: () => setEngine(1), ArrowDown: () => setEngine(-1), ' ': () => setEngine(0),
+    ArrowLeft: () => setRudder(-35), ArrowRight: () => setRudder(35), c: () => setRudder(0), C: () => setRudder(0),
+  };
+  if (commands[event.key]) { event.preventDefault(); commands[event.key](); }
+});
+
 window.__dockwise = {
   getState: () => clone(state),
   getLines: () => clone(lines),
   getBerthMode: () => berthMode,
+  getAppMode: () => appMode,
+  getTrainingState: () => trainingSession ? { ...clone(trainingSession), lesson: { id: activeLesson.id, title: activeLesson.title }, running } : null,
+  getStorageState: () => store.getDocument(),
+  setAppMode,
   setBerthMode,
   setEngine,
   setPropWalkDirection,
   applyPreset,
-  step: (seconds = 0.05) => { state = stepSimulation(state, currentControls(), seconds); updateOutputs(); return clone(state); },
+  startLesson,
+  step: (seconds = 0.05) => { state = stepSimulation(state, currentControls(), seconds); observeActiveTraining(seconds); updateOutputs(); return clone(state); },
 };
 
-resizeCanvas(); updateRangeOutputs(); applyPreset('aft-spring'); requestAnimationFrame(tick);
+renderLessonList();
+renderScenarioLibrary();
+resizeCanvas(); updateRangeOutputs(); applyPreset('aft-spring');
+setAppMode(store.getDocument().lastMode, { persist: false, focus: false });
+requestAnimationFrame(tick);
