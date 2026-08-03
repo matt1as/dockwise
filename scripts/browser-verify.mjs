@@ -53,6 +53,7 @@ const initial = await evaluate(`({
   canvasWidth: document.querySelector('#simCanvas').width,
   canvasHeight: document.querySelector('#simCanvas').height,
   boatModel: document.querySelector('.model-pill').textContent.trim(),
+  slogan: document.querySelector('.brand div span').textContent.trim(),
   guidanceTitle: document.querySelector('#motionTitle').textContent.trim()
 })`);
 assert(initial.ready === 'complete', 'page must finish loading');
@@ -60,6 +61,7 @@ assert(initial.title.includes('Dockwise'), 'title should identify Dockwise');
 assert(initial.lines === 1, 'aft-spring preset should start with one line');
 assert(initial.canvasWidth > 500 && initial.canvasHeight > 400, 'canvas should be rendered at useful resolution');
 assert(initial.boatModel.includes('32 ft') && initial.boatModel.includes('adjustable prop walk'), 'boat model should be visible');
+assert(initial.slogan === 'Trust the process', 'Dockwise slogan should match the requested wording');
 assert(initial.guidanceTitle.includes('Holding'), 'plain-language maneuver guidance should be visible');
 
 const endOnBerths = await evaluate(`(() => {
