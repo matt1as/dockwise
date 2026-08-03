@@ -1,7 +1,8 @@
 import fs from 'node:fs/promises';
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
-const target = await (await fetch('http://127.0.0.1:9222/json/new?http://127.0.0.1:4173', { method: 'PUT' })).json();
+const appUrl = process.env.DOCKWISE_URL || 'http://127.0.0.1:4173';
+const target = await (await fetch(`http://127.0.0.1:9222/json/new?${encodeURIComponent(appUrl)}`, { method: 'PUT' })).json();
 if (!target?.webSocketDebuggerUrl) throw new Error('Could not create isolated Dockwise browser target');
 
 const ws = new WebSocket(target.webSocketDebuggerUrl);

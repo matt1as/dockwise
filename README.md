@@ -2,7 +2,11 @@
 
 A working top-down browser simulator for rehearsing low-speed departures with a 32 ft fin-keel sailboat, single S-drive, aft/middle/forward boat cleats, and port prop walk in reverse.
 
-## Run
+## Public app
+
+[https://matt1as.github.io/dockwise/](https://matt1as.github.io/dockwise/)
+
+## Run locally
 
 ```bash
 cd /Users/krabban/src/sailboat-docking-simulator
