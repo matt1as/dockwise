@@ -26,6 +26,7 @@ let state = createInitialState({ x: 0, y: 0, heading: 0 });
 let lines = [];
 let lineCounter = 0;
 let engine = 0;
+let propWalkDirection = 1;
 let berthMode = 'alongside';
 let running = false;
 let analysis = true;
@@ -54,7 +55,7 @@ function currentControls() {
     engine,
     throttle: Number(controls.throttle.value) / 100,
     rudderDeg: Number(controls.rudder.value),
-    propWalk: Number(controls.propWalk.value) / 100,
+    propWalk: propWalkDirection * Number(controls.propWalk.value) / 100,
     wind: { speed: Number(controls.windSpeed.value), directionDeg: Number(controls.windDirection.value) },
     current: { speed: Number(controls.currentSpeed.value), directionDeg: Number(controls.currentDirection.value) },
     berthMode,
@@ -119,6 +120,19 @@ function setBerthMode(mode) {
 function setEngine(value) {
   engine = Number(value);
   $$('[data-engine]').forEach((button) => button.classList.toggle('active', Number(button.dataset.engine) === engine));
+  updateGuidance();
+}
+
+function setPropWalkDirection(value) {
+  propWalkDirection = Math.max(-1, Math.min(1, Number(value)));
+  $$('[data-prop-walk-direction]').forEach((button) => {
+    const active = Number(button.dataset.propWalkDirection) === propWalkDirection;
+    button.classList.toggle('active', active);
+    button.ariaPressed = String(active);
+  });
+  controls.propWalk.disabled = propWalkDirection === 0;
+  updateRangeOutputs();
+  updateGuidance();
 }
 
 function applyPreset(name) {
@@ -147,10 +161,56 @@ function updateRangeOutputs() {
   const rudder = Number(controls.rudder.value);
   $('#rudderValue').textContent = `${rudder > 0 ? '+' : ''}${rudder}°`;
   const propWalk = Number(controls.propWalk.value);
-  $('#propWalkValue').textContent = propWalk === 0
-    ? 'None'
-    : `${Math.abs(propWalk)}% ${propWalk > 0 ? 'port' : 'starboard'}`;
+  $('#propWalkValue').textContent = propWalkDirection === 0
+    ? 'Off'
+    : `${propWalk}% ${propWalkDirection > 0 ? 'port' : 'starboard'}`;
   $('#lineSlackValue').textContent = `${$('#lineSlack').value}%`;
+}
+
+function updateGuidance() {
+  const throttle = Number(controls.throttle.value);
+  const rudder = Number(controls.rudder.value);
+  const wind = Number(controls.windSpeed.value);
+  const current = Number(controls.currentSpeed.value);
+  const modeName = { alongside: 'alongside', 'bow-to': 'bow-to', 'stern-to': 'stern-to' }[berthMode];
+  const motion = engine > 0 ? 'Ahead' : engine < 0 ? 'Astern' : 'Holding';
+  $('#motionTitle').textContent = `${motion} · ${modeName}`;
+
+  const sentences = [];
+  if (engine === 0) {
+    sentences.push('Engine neutral: there is no propeller thrust.');
+  } else if (engine > 0) {
+    sentences.push(`Ahead at ${throttle}% pushes the boat forward.`);
+  } else {
+    sentences.push(`Astern at ${throttle}% pulls the boat backward.`);
+    if (propWalkDirection === 0 || Number(controls.propWalk.value) === 0) {
+      sentences.push('Prop walk is off.');
+    } else {
+      sentences.push(`Prop walk adds a ${propWalkDirection > 0 ? 'port' : 'starboard'} sideways push.`);
+    }
+  }
+  if (Math.abs(rudder) < 1) {
+    sentences.push('Rudder centered.');
+  } else {
+    sentences.push(`Rudder ${Math.abs(rudder)}° to ${rudder > 0 ? 'starboard' : 'port'}; its effect grows with boat speed and propeller wash.`);
+  }
+  if (lines.length) sentences.push(`${lines.length} connected ${lines.length === 1 ? 'line is' : 'lines are'} restraining the boat.`);
+  else sentences.push('No lines are connected; the boat is free to move.');
+  $('#motionSummary').textContent = sentences.join(' ');
+
+  const facts = [
+    modeName,
+    `${lines.length} ${lines.length === 1 ? 'line' : 'lines'}`,
+    engine === 0 ? 'engine neutral' : `${throttle}% ${engine > 0 ? 'ahead' : 'astern'}`,
+  ];
+  if (wind > 0) facts.push(`wind ${wind} m/s`);
+  if (current > 0) facts.push(`current ${current} m/s`);
+  const factNodes = facts.map((fact) => {
+    const chip = document.createElement('span');
+    chip.textContent = fact;
+    return chip;
+  });
+  $('#motionFacts').replaceChildren(...factNodes);
 }
 
 function formatTime(seconds) {
@@ -178,6 +238,7 @@ function updateOutputs() {
     warning.hidden = true;
   }
   renderLineList();
+  updateGuidance();
 }
 
 function renderLineList() {
@@ -204,7 +265,7 @@ function renderLineList() {
     detail.textContent = `${tension} · ${line.restLength.toFixed(1)} m`;
     text.append(title, detail);
     const remove = document.createElement('button'); remove.type = 'button'; remove.ariaLabel = `Release ${line.id}`; remove.textContent = '×';
-    remove.addEventListener('click', () => { lines = lines.filter((entry) => entry.id !== line.id); renderLineList(); });
+    remove.addEventListener('click', () => { lines = lines.filter((entry) => entry.id !== line.id); renderLineList(); updateGuidance(); });
     item.append(dot, text, remove);
     return item;
   }));
@@ -377,14 +438,16 @@ function tick(now) {
 }
 
 $$('[data-engine]').forEach((button) => button.addEventListener('click', () => setEngine(button.dataset.engine)));
+$$('[data-prop-walk-direction]').forEach((button) => button.addEventListener('click', () => setPropWalkDirection(button.dataset.propWalkDirection)));
 $$('[data-berth]').forEach((button) => button.addEventListener('click', () => setBerthMode(button.dataset.berth)));
 $$('[data-preset]').forEach((button) => button.addEventListener('click', () => applyPreset(button.dataset.preset)));
-Object.values(controls).forEach((element) => element.addEventListener('input', updateRangeOutputs));
+Object.values(controls).forEach((element) => element.addEventListener('input', () => { updateRangeOutputs(); updateGuidance(); }));
 $('#lineSlack').addEventListener('input', updateRangeOutputs);
 $('#addLine').addEventListener('click', () => {
   lines.push(makeLine($('#boatCleat').value, $('#dockCleat').value, Number($('#lineSlack').value), $('#boatSide').value));
   $$('.preset').forEach((button) => button.classList.remove('active'));
   renderLineList();
+  updateGuidance();
 });
 $('#playPause').addEventListener('click', () => {
   running = !running;
@@ -416,7 +479,10 @@ $('#loadScenario').addEventListener('click', () => {
     setEngine(c.engine || 0);
     if (Number.isFinite(c.throttle)) controls.throttle.value = c.throttle * 100;
     if (Number.isFinite(c.rudderDeg)) controls.rudder.value = c.rudderDeg;
-    if (Number.isFinite(c.propWalk)) controls.propWalk.value = c.propWalk * 100;
+    if (Number.isFinite(c.propWalk)) {
+      controls.propWalk.value = Math.abs(c.propWalk) * 100;
+      setPropWalkDirection(Math.sign(c.propWalk));
+    }
     if (c.wind) { controls.windSpeed.value = c.wind.speed; controls.windDirection.value = c.wind.directionDeg; }
     if (c.current) { controls.currentSpeed.value = c.current.speed; controls.currentDirection.value = c.current.directionDeg; }
     $('#scenarioName').value = scenario.name || 'Loaded departure';
@@ -449,6 +515,7 @@ window.__dockwise = {
   getBerthMode: () => berthMode,
   setBerthMode,
   setEngine,
+  setPropWalkDirection,
   applyPreset,
   step: (seconds = 0.05) => { state = stepSimulation(state, currentControls(), seconds); updateOutputs(); return clone(state); },
 };

@@ -45,6 +45,10 @@ Verified:
 - astern command moves the boat backward
 - port prop walk moves the boat toward local port in reverse
 - starboard prop walk reverses the lateral motion and displays the selected direction
+- separate Port/Off/Starboard choices make prop-walk direction explicit
+- Off disables the prop-walk strength control
+- plain-language guidance explains engine, rudder, prop-walk, and connected-line effects
+- mobile direction choices meet a 44 px touch-target height
 - ahead command advances the boat
 - run/pause advances and stops simulation time
 - scenario save/load restores four lines and its name

@@ -52,13 +52,15 @@ const initial = await evaluate(`({
   lines: window.__dockwise.getLines().length,
   canvasWidth: document.querySelector('#simCanvas').width,
   canvasHeight: document.querySelector('#simCanvas').height,
-  boatModel: document.querySelector('.model-pill').textContent.trim()
+  boatModel: document.querySelector('.model-pill').textContent.trim(),
+  guidanceTitle: document.querySelector('#motionTitle').textContent.trim()
 })`);
 assert(initial.ready === 'complete', 'page must finish loading');
 assert(initial.title.includes('Dockwise'), 'title should identify Dockwise');
 assert(initial.lines === 1, 'aft-spring preset should start with one line');
 assert(initial.canvasWidth > 500 && initial.canvasHeight > 400, 'canvas should be rendered at useful resolution');
 assert(initial.boatModel.includes('32 ft') && initial.boatModel.includes('adjustable prop walk'), 'boat model should be visible');
+assert(initial.guidanceTitle.includes('Holding'), 'plain-language maneuver guidance should be visible');
 
 const endOnBerths = await evaluate(`(() => {
   window.__dockwise.setBerthMode('bow-to');
@@ -95,15 +97,27 @@ assert(reverseResult.y < -0.001, 'reverse port prop walk should move the stern/b
 const starboardWalk = await evaluate(`(() => {
   window.__dockwise.applyPreset('clear');
   const slider = document.querySelector('#propWalk');
-  slider.value = -100;
+  document.querySelector('[data-prop-walk-direction="0"]').click();
+  const offDisabled = slider.disabled;
+  document.querySelector('[data-prop-walk-direction="-1"]').click();
+  slider.value = 100;
   slider.dispatchEvent(new Event('input', { bubbles: true }));
   document.querySelector('#throttle').value = 100;
   window.__dockwise.setEngine(-1);
   for (let i = 0; i < 40; i += 1) window.__dockwise.step(0.05);
-  return { state: window.__dockwise.getState(), label: document.querySelector('#propWalkValue').textContent };
+  return {
+    state: window.__dockwise.getState(),
+    label: document.querySelector('#propWalkValue').textContent,
+    activeDirection: document.querySelector('[data-prop-walk-direction].active').textContent,
+    guidance: document.querySelector('#motionSummary').textContent,
+    offDisabled
+  };
 })()`);
 assert(starboardWalk.state.y > 0.001, 'starboard prop walk should reverse lateral motion');
 assert(starboardWalk.label.includes('starboard'), 'prop-walk output should name the selected direction');
+assert(starboardWalk.activeDirection.includes('Starboard'), 'starboard direction button should show as selected');
+assert(starboardWalk.offDisabled, 'Off should disable the prop-walk strength slider');
+assert(starboardWalk.guidance.includes('starboard sideways push'), 'guidance should explain the selected prop-walk response');
 
 const runResult = await evaluate(`(async () => {
   window.__dockwise.applyPreset('clear');
@@ -127,12 +141,14 @@ const persistence = await evaluate(`(() => {
   return {
     lines: window.__dockwise.getLines().length,
     name: document.querySelector('#scenarioName').value,
-    status: document.querySelector('#saveStatus').textContent
+    status: document.querySelector('#saveStatus').textContent,
+    propDirection: document.querySelector('[data-prop-walk-direction].active').textContent.trim()
   };
 })()`);
 assert(persistence.lines === 4, 'load should restore four lines');
 assert(persistence.name === 'Browser verified departure', 'load should restore scenario name');
 assert(persistence.status.includes('Loaded'), 'UI should confirm loading');
+assert(persistence.propDirection === 'Starboard', 'load should restore the user-friendly prop-walk direction choice');
 
 const analysisToggle = await evaluate(`(() => {
   const button = document.querySelector('#analysisToggle');
@@ -157,8 +173,39 @@ const mobileShot = await send('Page.captureScreenshot', { format: 'png', capture
 await fs.mkdir('test-artifacts', { recursive: true });
 await fs.writeFile('test-artifacts/dockwise-mobile.png', Buffer.from(mobileShot.data, 'base64'));
 
+await evaluate(`document.querySelector('.prop-walk-direction').scrollIntoView({ block: 'center' })`);
+await sleep(200);
+const mobileControls = await evaluate(`(() => {
+  const buttons = [...document.querySelectorAll('[data-prop-walk-direction]')].map(button => {
+    const rect = button.getBoundingClientRect();
+    return { width: rect.width, height: rect.height, label: button.textContent.trim() };
+  });
+  const slider = document.querySelector('#propWalk').getBoundingClientRect();
+  return { buttons, sliderVisible: slider.top >= 0 && slider.bottom <= innerHeight };
+})()`);
+assert(mobileControls.buttons.every(button => button.height >= 42 && button.width >= 80), 'mobile prop-walk choices should be touch-friendly');
+assert(mobileControls.sliderVisible, 'mobile prop-walk strength should remain visible with its direction choices');
+const mobileControlsShot = await send('Page.captureScreenshot', { format: 'png', captureBeyondViewport: false });
+await fs.writeFile('test-artifacts/dockwise-mobile-controls.png', Buffer.from(mobileControlsShot.data, 'base64'));
+
+await evaluate(`document.querySelector('.guidance-card').scrollIntoView({ block: 'center' })`);
+await sleep(200);
+const mobileGuidance = await evaluate(`(() => {
+  const card = document.querySelector('.guidance-card').getBoundingClientRect();
+  return {
+    visible: card.top >= 0 && card.bottom <= innerHeight,
+    width: card.width,
+    summary: document.querySelector('#motionSummary').textContent.trim()
+  };
+})()`);
+assert(mobileGuidance.visible && mobileGuidance.width <= mobile.innerWidth, 'mobile guidance card should be fully readable');
+assert(mobileGuidance.summary.length > 40, 'mobile guidance should contain a useful explanation');
+const mobileGuidanceShot = await send('Page.captureScreenshot', { format: 'png', captureBeyondViewport: false });
+await fs.writeFile('test-artifacts/dockwise-mobile-guidance.png', Buffer.from(mobileGuidanceShot.data, 'base64'));
+
 await send('Emulation.setDeviceMetricsOverride', { width: 1440, height: 900, deviceScaleFactor: 1, mobile: false });
 await sleep(300);
+await evaluate(`scrollTo(0, 0)`);
 await evaluate(`window.__dockwise.setBerthMode('bow-to')`);
 await sleep(150);
 const bowShot = await send('Page.captureScreenshot', { format: 'png', captureBeyondViewport: false });
@@ -181,14 +228,18 @@ console.log(JSON.stringify({
   },
   fourLines,
   reverse: { x: reverseResult.x, y: reverseResult.y, heading: reverseResult.heading },
-  starboardWalk: { y: starboardWalk.state.y, label: starboardWalk.label },
+  starboardWalk: { y: starboardWalk.state.y, label: starboardWalk.label, guidance: starboardWalk.guidance },
   run: { time: runResult.state.time, x: runResult.state.x },
   persistence,
   mobile,
+  mobileControls,
+  mobileGuidance,
   exceptions,
   screenshots: [
     'test-artifacts/dockwise-desktop.png',
     'test-artifacts/dockwise-mobile.png',
+    'test-artifacts/dockwise-mobile-controls.png',
+    'test-artifacts/dockwise-mobile-guidance.png',
     'test-artifacts/dockwise-bow-to.png',
     'test-artifacts/dockwise-stern-to.png'
   ]
