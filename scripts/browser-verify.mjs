@@ -60,6 +60,22 @@ assert(initial.lines === 1, 'aft-spring preset should start with one line');
 assert(initial.canvasWidth > 500 && initial.canvasHeight > 400, 'canvas should be rendered at useful resolution');
 assert(initial.boatModel.includes('32 ft') && initial.boatModel.includes('port prop walk'), 'boat model should be visible');
 
+const endOnBerths = await evaluate(`(() => {
+  window.__dockwise.setBerthMode('bow-to');
+  const bow = { mode: window.__dockwise.getBerthMode(), state: window.__dockwise.getState(), lines: window.__dockwise.getLines() };
+  window.__dockwise.setBerthMode('stern-to');
+  const stern = { mode: window.__dockwise.getBerthMode(), state: window.__dockwise.getState(), lines: window.__dockwise.getLines() };
+  window.__dockwise.setBerthMode('alongside');
+  return { bow, stern };
+})()`);
+assert(endOnBerths.bow.mode === 'bow-to', 'bow-to button should select bow-to mode');
+assert(Math.abs(endOnBerths.bow.state.heading + Math.PI / 2) < 1e-6, 'bow-to should point the bow at the quay');
+assert(endOnBerths.bow.lines.length === 2 && endOnBerths.bow.lines.some(line => line.boatSide === 'starboard'), 'bow-to should create mirrored forward lines');
+assert(endOnBerths.stern.mode === 'stern-to', 'stern-to button should select stern-to mode');
+assert(Math.abs(endOnBerths.stern.state.heading - Math.PI / 2) < 1e-6, 'stern-to should point the stern at the quay');
+assert(endOnBerths.stern.lines.length === 2 && endOnBerths.stern.lines.every(line => line.boatCleat === 'aft'), 'stern-to should create paired aft lines');
+assert(!endOnBerths.bow.state.collision && !endOnBerths.stern.state.collision, 'end-on starting positions should be clear of the quay');
+
 const fourLines = await evaluate(`(() => {
   window.__dockwise.applyPreset('four-lines');
   return { modelLines: window.__dockwise.getLines().length, uiLines: document.querySelectorAll('.line-item').length };
@@ -130,6 +146,15 @@ await fs.writeFile('test-artifacts/dockwise-mobile.png', Buffer.from(mobileShot.
 
 await send('Emulation.setDeviceMetricsOverride', { width: 1440, height: 900, deviceScaleFactor: 1, mobile: false });
 await sleep(300);
+await evaluate(`window.__dockwise.setBerthMode('bow-to')`);
+await sleep(150);
+const bowShot = await send('Page.captureScreenshot', { format: 'png', captureBeyondViewport: false });
+await fs.writeFile('test-artifacts/dockwise-bow-to.png', Buffer.from(bowShot.data, 'base64'));
+await evaluate(`window.__dockwise.setBerthMode('stern-to')`);
+await sleep(150);
+const sternShot = await send('Page.captureScreenshot', { format: 'png', captureBeyondViewport: false });
+await fs.writeFile('test-artifacts/dockwise-stern-to.png', Buffer.from(sternShot.data, 'base64'));
+await evaluate(`window.__dockwise.setBerthMode('alongside')`);
 const desktopShot = await send('Page.captureScreenshot', { format: 'png', captureBeyondViewport: false });
 await fs.writeFile('test-artifacts/dockwise-desktop.png', Buffer.from(desktopShot.data, 'base64'));
 
@@ -137,13 +162,22 @@ assert(exceptions.length === 0, `runtime exceptions: ${exceptions.join('; ')}`);
 console.log(JSON.stringify({
   status: 'PASS',
   initial,
+  endOnBerths: {
+    bow: { heading: endOnBerths.bow.state.heading, lines: endOnBerths.bow.lines.length },
+    stern: { heading: endOnBerths.stern.state.heading, lines: endOnBerths.stern.lines.length }
+  },
   fourLines,
   reverse: { x: reverseResult.x, y: reverseResult.y, heading: reverseResult.heading },
   run: { time: runResult.state.time, x: runResult.state.x },
   persistence,
   mobile,
   exceptions,
-  screenshots: ['test-artifacts/dockwise-desktop.png', 'test-artifacts/dockwise-mobile.png']
+  screenshots: [
+    'test-artifacts/dockwise-desktop.png',
+    'test-artifacts/dockwise-mobile.png',
+    'test-artifacts/dockwise-bow-to.png',
+    'test-artifacts/dockwise-stern-to.png'
+  ]
 }, null, 2));
 ws.close();
 await fetch(`http://127.0.0.1:9222/json/close/${target.id}`);

@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {
   BOAT_PRESET,
   createInitialState,
+  createBerthState,
   boatPointToWorld,
   computeLineForce,
   computeForces,
@@ -18,6 +19,25 @@ test('32 ft preset has aft, middle, and forward cleats', () => {
   assert.equal(BOAT_PRESET.lengthFt, 32);
   assert.deepEqual(Object.keys(BOAT_PRESET.cleats), ['aft', 'middle', 'forward']);
   assert.equal(BOAT_PRESET.propWalkDirection, 'port');
+});
+
+test('berth states orient the boat alongside, bow-to, and stern-to', () => {
+  const alongside = createBerthState('alongside');
+  const bowTo = createBerthState('bow-to');
+  const sternTo = createBerthState('stern-to');
+  near(alongside.heading, 0);
+  near(bowTo.heading, -Math.PI / 2);
+  near(sternTo.heading, Math.PI / 2);
+});
+
+test('end-on berth states start clear of the dock boundary', () => {
+  const boundary = -3.47;
+  for (const mode of ['bow-to', 'stern-to']) {
+    const state = createBerthState(mode, boundary, 0.65);
+    const hullExtent = Math.abs(Math.sin(state.heading)) * BOAT_PRESET.length * 0.5
+      + Math.abs(Math.cos(state.heading)) * BOAT_PRESET.beam * 0.5;
+    near(state.y - hullExtent, boundary + 0.65);
+  }
 });
 
 test('boat attachment point rotates into world coordinates', () => {
@@ -60,6 +80,18 @@ test('a forward spring line attached aft creates a predictable yaw moment', () =
   const forces = computeForces(state, { lines: [line], engine: 0, throttle: 0, rudderDeg: 0, wind: { speed: 0, directionDeg: 0 }, current: { speed: 0, directionDeg: 0 } });
   assert.ok(forces.torque > 0, `expected positive yaw torque, got ${forces.torque}`);
   assert.ok(forces.lines[0].tension > 0);
+});
+
+test('mirrored end-on lines use their explicit boat-side attachment points', () => {
+  const state = createBerthState('bow-to');
+  const forward = BOAT_PRESET.cleats.forward;
+  const lines = [
+    { id: 'port', active: true, boatCleat: 'forward', boatPoint: { x: forward.x, y: -Math.abs(forward.y) }, dockPoint: { x: 1.5, y: -3.65 }, restLength: 0, stiffness: 10, damping: 0, maxLoad: 1000 },
+    { id: 'starboard', active: true, boatCleat: 'forward', boatPoint: { x: forward.x, y: Math.abs(forward.y) }, dockPoint: { x: -1.5, y: -3.65 }, restLength: 0, stiffness: 10, damping: 0, maxLoad: 1000 },
+  ];
+  const forces = computeForces(state, { lines, engine: 0, throttle: 0, rudderDeg: 0, wind: { speed: 0, directionDeg: 0 }, current: { speed: 0, directionDeg: 0 } });
+  near(forces.torque, 0, 1e-6);
+  near(forces.lines[0].tension, forces.lines[1].tension, 1e-6);
 });
 
 test('reverse thrust adds port-side prop walk', () => {

@@ -17,11 +17,12 @@ Open [http://127.0.0.1:4173](http://127.0.0.1:4173).
 
 ## Use
 
-1. Select a preset or connect your own lines between the aft, middle, or forward boat cleat and dock cleats D1–D6.
-2. Select **Astern**, **Neutral**, or **Ahead**, then set throttle and rudder.
-3. Optionally set wind/current speed and the direction each vector moves **toward**.
-4. Press **Run**, **Pause**, **Step**, or **Reset** and watch the boat, force vectors, line tensions, telemetry, and warnings.
-5. Release a line with its × button or save/load the full scenario locally.
+1. Choose **Alongside**, **Bow-to**, or **Stern-to**. End-on modes start perpendicular to the quay with mirrored port/starboard line pairs.
+2. Select a line preset or connect your own lines between the aft, middle, or forward boat cleat, its port/starboard side, and dock cleats D1–D6.
+3. Select **Astern**, **Neutral**, or **Ahead**, then set throttle and rudder.
+4. Optionally set wind/current speed and the direction each vector moves **toward**.
+5. Press **Run**, **Pause**, **Step**, or **Reset** and watch the boat, force vectors, line tensions, telemetry, and warnings.
+6. Release a line with its × button or save/load the full scenario locally.
 
 The boat can also be dragged to a new starting position while paused.
 

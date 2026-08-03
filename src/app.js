@@ -1,6 +1,7 @@
 import {
   BOAT_PRESET,
   createInitialState,
+  createBerthState,
   boatPointToWorld,
   computeForces,
   stepSimulation,
@@ -25,6 +26,7 @@ let state = createInitialState({ x: 0, y: 0, heading: 0 });
 let lines = [];
 let lineCounter = 0;
 let engine = 0;
+let berthMode = 'alongside';
 let running = false;
 let analysis = true;
 let lastFrame = performance.now();
@@ -55,6 +57,7 @@ function currentControls() {
     propWalk: Number(controls.propWalk.value) / 100,
     wind: { speed: Number(controls.windSpeed.value), directionDeg: Number(controls.windDirection.value) },
     current: { speed: Number(controls.currentSpeed.value), directionDeg: Number(controls.currentDirection.value) },
+    berthMode,
     dockBoundaryY: dockY + 0.18,
     lines,
   };
@@ -63,15 +66,19 @@ function currentControls() {
 function distance(a, b) { return Math.hypot(a.x - b.x, a.y - b.y); }
 function dockCleat(id) { return dockCleats.find((cleat) => cleat.id === id); }
 
-function makeLine(boatCleat, dockId, slackPercent = 3) {
+function makeLine(boatCleat, dockId, slackPercent = 3, boatSide = 'port') {
   const dock = dockCleat(dockId);
-  const boatPoint = boatPointToWorld(state, BOAT_PRESET.cleats[boatCleat]);
+  const station = BOAT_PRESET.cleats[boatCleat];
+  const localBoatPoint = { x: station.x, y: boatSide === 'starboard' ? Math.abs(station.y) : -Math.abs(station.y) };
+  const boatPoint = boatPointToWorld(state, localBoatPoint);
   const length = distance(boatPoint, dock);
   lineCounter += 1;
   return {
     id: `L${lineCounter}`,
     active: true,
     boatCleat,
+    boatSide,
+    boatPoint: localBoatPoint,
     dockCleat: dockId,
     dockPoint: { x: dock.x, y: dock.y },
     restLength: length * (1 + slackPercent / 100),
@@ -83,11 +90,29 @@ function makeLine(boatCleat, dockId, slackPercent = 3) {
 }
 
 function resetBoat() {
-  state = createInitialState({ x: 0, y: 0, heading: 0 });
+  state = createBerthState(berthMode, dockY + 0.18, 0.65);
   running = false;
   trail = [];
   accumulator = 0;
   $('#playPause').textContent = '▶ Run';
+  updateOutputs();
+}
+
+function setBerthMode(mode) {
+  berthMode = mode;
+  resetBoat();
+  lineCounter = 0;
+  if (mode === 'bow-to') {
+    lines = [makeLine('forward', 'D4', 4, 'port'), makeLine('forward', 'D3', 4, 'starboard')];
+  } else if (mode === 'stern-to') {
+    lines = [makeLine('aft', 'D4', 4, 'port'), makeLine('aft', 'D3', 4, 'starboard')];
+  } else {
+    lines = [makeLine('aft', 'D4', 2, 'port')];
+  }
+  $$('[data-berth]').forEach((button) => button.classList.toggle('active', button.dataset.berth === mode));
+  $$('.preset').forEach((button) => button.classList.remove('active'));
+  resizeCanvas();
+  renderLineList();
   updateOutputs();
 }
 
@@ -171,7 +196,7 @@ function renderLineList() {
     const text = document.createElement('div');
     const tension = result ? `${(result.tension / 1000).toFixed(1)} kN` : '0.0 kN';
     const title = document.createElement('strong');
-    title.textContent = `${BOAT_PRESET.cleats[line.boatCleat].label} → ${line.dockCleat}`;
+    title.textContent = `${BOAT_PRESET.cleats[line.boatCleat].label} ${line.boatSide || 'port'} → ${line.dockCleat}`;
     const detail = document.createElement('span');
     detail.textContent = `${tension} · ${line.restLength.toFixed(1)} m`;
     text.append(title, detail);
@@ -187,13 +212,20 @@ function resizeCanvas() {
   const dpr = Math.min(window.devicePixelRatio || 1, 2);
   canvas.width = Math.round(rect.width * dpr);
   canvas.height = Math.round(rect.height * dpr);
+  const widthScale = Math.max(27, Math.min(48, rect.width / 19));
+  const scale = berthMode === 'alongside'
+    ? widthScale
+    : Math.max(24, Math.min(38, widthScale, (rect.height - 145) / 11));
+  const dockEdge = berthMode === 'alongside'
+    ? Math.max(175, Math.min(235, rect.height * 0.34))
+    : Math.max(105, Math.min(145, rect.height * 0.25));
   view = {
     width: rect.width,
     height: rect.height,
     dpr,
-    scale: Math.max(27, Math.min(48, rect.width / 19)),
+    scale,
     originX: rect.width * 0.49,
-    originY: Math.max(175, Math.min(235, rect.height * 0.34)) - dockY * Math.max(27, Math.min(48, rect.width / 19)),
+    originY: dockEdge - (dockY + 0.18) * scale,
   };
 }
 
@@ -269,16 +301,18 @@ function drawBoat() {
   const rudderB = transformBoatPoint({ x: -5.0, y: Math.sin(rudderAngle) * 1.0 });
   ctx.strokeStyle = '#ffbb55'; ctx.lineWidth = 4; ctx.beginPath(); ctx.moveTo(rudderA.x, rudderA.y); ctx.lineTo(rudderB.x, rudderB.y); ctx.stroke();
   for (const [name, cleat] of Object.entries(BOAT_PRESET.cleats)) {
-    const point = transformBoatPoint(cleat);
-    ctx.fillStyle = '#071b24'; ctx.strokeStyle = '#70e0bb'; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(point.x, point.y, 5.5, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
-    ctx.fillStyle = '#15353c'; ctx.font = '600 8px Manrope'; ctx.fillText(name[0].toUpperCase(), point.x, point.y + 3);
+    for (const side of [-1, 1]) {
+      const point = transformBoatPoint({ x: cleat.x, y: Math.abs(cleat.y) * side });
+      ctx.fillStyle = '#071b24'; ctx.strokeStyle = side < 0 ? '#70e0bb' : '#4cc9e7'; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(point.x, point.y, 5.5, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+      ctx.fillStyle = '#15353c'; ctx.font = '600 8px Manrope'; ctx.fillText(name[0].toUpperCase(), point.x, point.y + 3);
+    }
   }
 }
 
 function drawLines() {
   const resultMap = new Map((state.lineResults || []).map((result) => [result.id, result]));
   for (const line of lines) {
-    const a = toScreen(boatPointToWorld(state, BOAT_PRESET.cleats[line.boatCleat]));
+    const a = toScreen(boatPointToWorld(state, line.boatPoint || BOAT_PRESET.cleats[line.boatCleat]));
     const b = toScreen(line.dockPoint);
     const result = resultMap.get(line.id);
     ctx.strokeStyle = result?.overloaded ? '#ff6e66' : line.color; ctx.lineWidth = result?.tension > 10 ? 2.5 : 1.6;
@@ -340,11 +374,12 @@ function tick(now) {
 }
 
 $$('[data-engine]').forEach((button) => button.addEventListener('click', () => setEngine(button.dataset.engine)));
+$$('[data-berth]').forEach((button) => button.addEventListener('click', () => setBerthMode(button.dataset.berth)));
 $$('[data-preset]').forEach((button) => button.addEventListener('click', () => applyPreset(button.dataset.preset)));
 Object.values(controls).forEach((element) => element.addEventListener('input', updateRangeOutputs));
 $('#lineSlack').addEventListener('input', updateRangeOutputs);
 $('#addLine').addEventListener('click', () => {
-  lines.push(makeLine($('#boatCleat').value, $('#dockCleat').value, Number($('#lineSlack').value)));
+  lines.push(makeLine($('#boatCleat').value, $('#dockCleat').value, Number($('#lineSlack').value), $('#boatSide').value));
   $$('.preset').forEach((button) => button.classList.remove('active'));
   renderLineList();
 });
@@ -370,9 +405,11 @@ $('#loadScenario').addEventListener('click', () => {
   if (!saved) { $('#saveStatus').textContent = 'No saved scenario yet.'; return; }
   try {
     const scenario = deserializeScenario(saved);
-    state = createInitialState(scenario.state); lines = scenario.lines || [];
-    lineCounter = lines.reduce((max, line) => Math.max(max, Number(line.id?.slice(1)) || 0), 0);
     const c = scenario.controls || {};
+    berthMode = ['alongside', 'bow-to', 'stern-to'].includes(c.berthMode) ? c.berthMode : 'alongside';
+    state = createInitialState(scenario.state); lines = scenario.lines || [];
+    lineCounter = lines.reduce((max, line) => Math.max(max, typeof line.id === 'string' ? Number(line.id.slice(1)) || 0 : 0), 0);
+    $$('[data-berth]').forEach((button) => button.classList.toggle('active', button.dataset.berth === berthMode));
     setEngine(c.engine || 0);
     if (Number.isFinite(c.throttle)) controls.throttle.value = c.throttle * 100;
     if (Number.isFinite(c.rudderDeg)) controls.rudder.value = c.rudderDeg;
@@ -380,7 +417,7 @@ $('#loadScenario').addEventListener('click', () => {
     if (c.wind) { controls.windSpeed.value = c.wind.speed; controls.windDirection.value = c.wind.directionDeg; }
     if (c.current) { controls.currentSpeed.value = c.current.speed; controls.currentDirection.value = c.current.directionDeg; }
     $('#scenarioName').value = scenario.name || 'Loaded departure';
-    running = false; $('#playPause').textContent = '▶ Run'; updateRangeOutputs(); updateOutputs();
+    running = false; $('#playPause').textContent = '▶ Run'; resizeCanvas(); updateRangeOutputs(); updateOutputs();
     $('#saveStatus').textContent = `Loaded “${scenario.name}”.`;
   } catch { $('#saveStatus').textContent = 'Saved scenario is invalid.'; }
 });
@@ -395,7 +432,9 @@ canvas.addEventListener('pointermove', (event) => {
   if (!dragging || running) return;
   const rect = canvas.getBoundingClientRect();
   const world = toWorld({ x: event.clientX - rect.left, y: event.clientY - rect.top });
-  state = createInitialState({ x: world.x, y: Math.max(dockY + BOAT_PRESET.beam * 0.5 + 0.2, world.y), heading: state.heading });
+  const hullExtent = Math.abs(Math.sin(state.heading)) * BOAT_PRESET.length * 0.5
+    + Math.abs(Math.cos(state.heading)) * BOAT_PRESET.beam * 0.5;
+  state = createInitialState({ x: world.x, y: Math.max(dockY + 0.18 + hullExtent + 0.2, world.y), heading: state.heading });
   trail = []; updateOutputs();
 });
 canvas.addEventListener('pointerup', () => { dragging = false; });
@@ -404,6 +443,8 @@ window.addEventListener('resize', resizeCanvas);
 window.__dockwise = {
   getState: () => clone(state),
   getLines: () => clone(lines),
+  getBerthMode: () => berthMode,
+  setBerthMode,
   setEngine,
   applyPreset,
   step: (seconds = 0.05) => { state = stepSimulation(state, currentControls(), seconds); updateOutputs(); return clone(state); },

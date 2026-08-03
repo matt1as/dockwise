@@ -21,6 +21,13 @@
     <aside class="panel controls-panel" aria-label="Simulation controls">
       <section>
         <div class="section-heading"><span>01</span><h2>Maneuver</h2></div>
+        <label class="control-caption">Berth orientation</label>
+        <div class="berth-grid" role="group" aria-label="Berth orientation">
+          <button type="button" class="berth-button active" data-berth="alongside">Alongside</button>
+          <button type="button" class="berth-button" data-berth="bow-to">Bow-to</button>
+          <button type="button" class="berth-button" data-berth="stern-to">Stern-to</button>
+        </div>
+        <label class="control-caption preset-caption">Line arrangement</label>
         <div class="preset-grid">
           <button type="button" class="preset active" data-preset="aft-spring">Aft spring</button>
           <button type="button" class="preset" data-preset="mid-spring">Mid spring</button>
@@ -56,8 +63,9 @@
         <div class="section-heading"><span>04</span><h2>Add line</h2></div>
         <div class="two-col">
           <label>Boat cleat<select id="boatCleat"><option value="aft">Aft</option><option value="middle">Middle</option><option value="forward">Forward</option></select></label>
-          <label>Dock cleat<select id="dockCleat"></select></label>
+          <label>Boat side<select id="boatSide"><option value="port">Port</option><option value="starboard">Starboard</option></select></label>
         </div>
+        <label class="dock-cleat-row">Dock cleat<select id="dockCleat"></select></label>
         <label class="range-row compact" for="lineSlack"><span>Slack <output id="lineSlackValue">5%</output></span><input id="lineSlack" type="range" min="-8" max="30" value="5"></label>
         <button id="addLine" class="primary-button" type="button">Connect line</button>
       </section>

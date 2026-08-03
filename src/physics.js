@@ -33,6 +33,17 @@ export function createInitialState(overrides = {}) {
   };
 }
 
+export function createBerthState(mode = 'alongside', dockBoundaryY = -3.47, gap = 0.65) {
+  const headings = { alongside: 0, 'bow-to': -Math.PI / 2, 'stern-to': Math.PI / 2 };
+  if (!Object.hasOwn(headings, mode)) throw new Error(`Unsupported berth mode: ${mode}`);
+  const heading = headings[mode];
+  if (mode === 'alongside') return createInitialState({ heading });
+  const halfLength = BOAT_PRESET.length * 0.5;
+  const halfBeam = BOAT_PRESET.beam * 0.5;
+  const hullExtent = Math.abs(Math.sin(heading)) * halfLength + Math.abs(Math.cos(heading)) * halfBeam;
+  return createInitialState({ y: dockBoundaryY + hullExtent + Math.max(0.1, Number(gap) || 0.65), heading });
+}
+
 export function rotate(point, angle) {
   const c = Math.cos(angle);
   const s = Math.sin(angle);
@@ -162,7 +173,7 @@ export function computeForces(state, controls = {}) {
 
   for (const line of controls.lines || []) {
     if (!line.active) continue;
-    const localPoint = BOAT_PRESET.cleats[line.boatCleat];
+    const localPoint = line.boatPoint || BOAT_PRESET.cleats[line.boatCleat];
     if (!localPoint || !line.dockPoint) continue;
     const boatPoint = boatPointToWorld(state, localPoint);
     const worldOffset = subtract(boatPoint, { x: state.x, y: state.y });
@@ -259,8 +270,10 @@ export function deserializeScenario(serialized) {
         const validBoatCleat = line && Object.hasOwn(BOAT_PRESET.cleats, line.boatCleat);
         const validDockCleat = typeof line?.dockCleat === 'string' && /^D[1-6]$/.test(line.dockCleat);
         const validDockPoint = line?.dockPoint && Number.isFinite(line.dockPoint.x) && Number.isFinite(line.dockPoint.y);
+        const validBoatPoint = line?.boatPoint === undefined
+          || (Number.isFinite(line.boatPoint?.x) && Number.isFinite(line.boatPoint?.y));
         const validLength = Number.isFinite(line?.restLength) && line.restLength >= 0;
-        if (!validBoatCleat || !validDockCleat || !validDockPoint || !validLength) throw new Error('Invalid scenario');
+        if (!validBoatCleat || !validDockCleat || !validDockPoint || !validBoatPoint || !validLength) throw new Error('Invalid scenario');
       }
     }
     return parsed;

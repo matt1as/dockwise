@@ -8,12 +8,15 @@
 
 Command: `npm test`
 
-Result: **PASS — 13/13 tests**
+Result: **PASS — 16/16 tests**
 
 Covered behavior:
 
 - 32 ft fin-keel S-drive preset
 - aft/middle/forward cleat geometry
+- alongside, bow-to, and stern-to initial orientation
+- safe end-on clearance from the quay
+- mirrored port/starboard end-on attachment forces
 - slack and taut line forces
 - line overload detection
 - spring-line yaw moment
