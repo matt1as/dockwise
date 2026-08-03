@@ -1,0 +1,2 @@
+const __vite__mapDeps=(i,m=__vite__mapDeps,d=(m.f||(m.f=["./web-dmoydm0p.js","./dist-Bv5dNuds.js","./definitions-BdWVgBTV.js"])))=>i.map(i=>d[i]);
+import{t as e}from"./preload-helper-HclGiUj8.js";import{n as t}from"./dist-Bv5dNuds.js";import{n,t as r}from"./definitions-BdWVgBTV.js";var i=t(`Haptics`,{web:()=>e(()=>import(`./web-dmoydm0p.js`).then(e=>new e.HapticsWeb),__vite__mapDeps([0,1,2]),import.meta.url)});export{i as Haptics,r as ImpactStyle,n as NotificationType};

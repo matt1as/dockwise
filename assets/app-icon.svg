@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" role="img" aria-labelledby="title desc">
+  <title id="title">Dockwise app icon</title>
+  <desc id="desc">A white top-down sailboat held inside a mint navigation diamond on deep navy water.</desc>
+  <rect width="1024" height="1024" fill="#061b24"/>
+  <circle cx="512" cy="512" r="380" fill="#0a2a34"/>
+  <circle cx="512" cy="512" r="310" fill="none" stroke="#17424a" stroke-width="10"/>
+  <rect x="246" y="246" width="532" height="532" rx="42" transform="rotate(45 512 512)" fill="none" stroke="#70e0bb" stroke-width="40"/>
+  <path d="M512 212 C577 302 623 415 628 596 C631 701 590 774 512 830 C434 774 393 701 396 596 C401 415 447 302 512 212Z" fill="#f5faf7"/>
+  <path d="M512 280 L512 751" stroke="#163942" stroke-width="18" stroke-linecap="round"/>
+  <path d="M512 353 C559 438 579 535 574 647 C571 695 550 732 512 762" fill="none" stroke="#9dbbb8" stroke-width="14"/>
+  <path d="M512 353 C465 438 445 535 450 647 C453 695 474 732 512 762" fill="none" stroke="#9dbbb8" stroke-width="14"/>
+  <circle cx="512" cy="600" r="31" fill="#0a3840"/>
+  <path d="M512 171 L548 228 H476Z" fill="#70e0bb"/>
+</svg>

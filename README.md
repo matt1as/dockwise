@@ -2,14 +2,14 @@
 
 A working top-down browser trainer for learning and rehearsing low-speed docking with a 32 ft fin-keel sailboat, single S-drive, aft/middle/forward boat cleats, and adjustable prop walk.
 
-## Public app
+## Public browser app
 
 [https://matt1as.github.io/dockwise/](https://matt1as.github.io/dockwise/)
 
 ## Run locally
 
 ```bash
-cd /Users/krabban/src/sailboat-docking-simulator
+cd sailboat-docking-simulator
 npm start
 ```
 
@@ -45,6 +45,25 @@ The browser verification script uses Chrome DevTools Protocol and expects:
 - headless Chrome with remote debugging on port `9222`.
 
 It validates first-run Learn onboarding, all ten lesson cards, deterministic lesson start/retry/failure, synchronized keyboard/touch controls, mode persistence, rendered Sandbox canvas dimensions, presets, berth modes, ahead/astern motion, signed prop walk, run/pause, safe scenario persistence/rename/delete, portrait and landscape 44 px lesson targets, mobile responsiveness, and runtime exceptions.
+
+## iOS setup and verification
+
+The Capacitor project targets iPhone and iPad on iOS 15 or later. From a clean checkout, install dependencies, verify the web app, build it, sync the built files and native plugins, then inspect the generated project:
+
+```bash
+npm ci
+npm test
+npm run build
+npm run verify:build
+npm run cap:sync
+npm run verify:ios
+```
+
+Run `npm run cap:sync` after every web or Capacitor dependency change. On a Mac with full Xcode installed, open the generated project with `npm run ios:open` and configure signing before creating an archive. App Store signing, an App Store Connect record, TestFlight upload, and device/TestFlight validation have **not** been completed yet.
+
+## GitHub Pages deployment
+
+`.github/workflows/pages.yml` tests and builds the Vite app, then deploys `dist` to GitHub Pages. After the repository's Pages source is switched to **GitHub Actions**, the bundled browser app and its `/privacy.html` and `/support.html` pages are served together. This repository change does not alter the live Pages setting by itself.
 
 ## Model limitations
 

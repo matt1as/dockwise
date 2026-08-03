@@ -9,6 +9,10 @@ import {
 import { LESSONS, getLesson } from './lessons.js';
 import { createTrainingSession, observeTrainingStep, summarizeTrainingSession } from './training.js';
 import { createDockwiseStore } from './storage.js';
+import { createRuntimePlatform } from './platform.js';
+
+const platform = await createRuntimePlatform();
+await platform.restoreStorage(localStorage);
 
 const canvas = document.querySelector('#simCanvas');
 const ctx = canvas.getContext('2d');
@@ -40,7 +44,7 @@ let activeLesson = null;
 let trainingSession = null;
 let trainingOutcomeStored = false;
 let sandboxSnapshot = null;
-const store = createDockwiseStore(localStorage);
+const store = createDockwiseStore(platform.storage(localStorage));
 let view = { width: 0, height: 0, scale: 42, originX: 0, originY: 0, dpr: 1 };
 
 const controls = {
@@ -253,6 +257,11 @@ function updateOutputs() {
   $('#yawValue').textContent = state.yawRateDeg.toFixed(1);
   $('#timeValue').textContent = formatTime(state.time);
   const overloaded = (state.lineResults || []).some((line) => line.overloaded);
+  platform.updateHaptics({
+    collision: state.collision,
+    overload: overloaded,
+    lessonStatus: trainingSession?.status || 'running',
+  });
   const warning = $('#warning');
   if (state.collision) {
     warning.hidden = false;

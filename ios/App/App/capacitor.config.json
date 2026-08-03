@@ -1,0 +1,9 @@
+{
+	"appId": "io.nacka.dockwise",
+	"appName": "Dockwise",
+	"webDir": "dist",
+	"packageClassList": [
+		"HapticsPlugin",
+		"PreferencesPlugin"
+	]
+}

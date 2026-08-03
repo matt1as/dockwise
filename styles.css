@@ -1,12 +1,12 @@
-:root { color-scheme: dark; --bg:#06151d; --panel:#0a202a; --panel2:#0d2833; --line:#21414c; --text:#eef6f3; --muted:#86a3a8; --mint:#70e0bb; --cyan:#4cc9e7; --amber:#ffbb55; --danger:#ff6e66; --dock:#a67c56; }
+:root { color-scheme: dark; --bg:#06151d; --panel:#0a202a; --panel2:#0d2833; --line:#21414c; --text:#eef6f3; --muted:#86a3a8; --mint:#70e0bb; --cyan:#4cc9e7; --amber:#ffbb55; --danger:#ff6e66; --dock:#a67c56; --safe-top:env(safe-area-inset-top,0px); --safe-right:env(safe-area-inset-right,0px); --safe-bottom:env(safe-area-inset-bottom,0px); --safe-left:env(safe-area-inset-left,0px); }
 * { box-sizing: border-box; }
 html, body { margin:0; min-height:100%; background:var(--bg); color:var(--text); font-family:Manrope, system-ui, sans-serif; }
-body { min-height:100vh; overflow-x:hidden; }
+body { min-height:100vh; min-height:100dvh; overflow-x:hidden; }
 button, input, select { font:inherit; color:inherit; }
 button { cursor:pointer; }
 [hidden] { display:none!important; }
 button:focus-visible, input:focus-visible, select:focus-visible, [tabindex]:focus-visible { outline:3px solid var(--amber); outline-offset:2px; }
-.topbar { height:68px; padding:0 22px; display:flex; align-items:center; gap:20px; border-bottom:1px solid var(--line); background:rgba(6,21,29,.94); backdrop-filter:blur(12px); }
+.topbar { min-height:calc(68px + var(--safe-top)); padding:var(--safe-top) max(22px,var(--safe-right)) 0 max(22px,var(--safe-left)); display:flex; align-items:center; gap:20px; border-bottom:1px solid var(--line); background:rgba(6,21,29,.94); backdrop-filter:blur(12px); }
 .brand { display:flex; align-items:center; gap:11px; min-width:210px; }
 .brand-mark { display:grid; place-items:center; width:34px; height:34px; border:1px solid var(--mint); color:var(--mint); font-family:'DM Mono'; font-weight:500; transform:rotate(45deg); }
 .brand-mark::first-letter { transform:rotate(-45deg); }
@@ -17,10 +17,10 @@ button:focus-visible, input:focus-visible, select:focus-visible, [tabindex]:focu
 .status-dot { display:inline-block; width:7px; height:7px; margin-right:8px; border-radius:50%; background:var(--mint); box-shadow:0 0 10px var(--mint); }
 .ghost-button, .icon-button { background:transparent; border:1px solid var(--line); border-radius:7px; padding:8px 12px; }
 .ghost-button:hover, .icon-button:hover { border-color:#47727c; }
-.app-shell { min-height:calc(100vh - 68px); display:grid; grid-template-columns:282px minmax(480px,1fr) 282px; }
+.app-shell { min-height:calc(100vh - 68px - var(--safe-top)); min-height:calc(100dvh - 68px - var(--safe-top)); display:grid; grid-template-columns:282px minmax(480px,1fr) 282px; padding-bottom:var(--safe-bottom); }
 .panel { background:var(--panel); padding:17px; overflow:auto; }
-.controls-panel { border-right:1px solid var(--line); }
-.analysis-panel { border-left:1px solid var(--line); }
+.controls-panel { border-right:1px solid var(--line); padding-left:max(17px,var(--safe-left)); }
+.analysis-panel { border-left:1px solid var(--line); padding-right:max(17px,var(--safe-right)); }
 .panel section { padding:14px 0 20px; border-bottom:1px solid var(--line); }
 .panel section:first-child { padding-top:3px; }
 .panel section:last-child { border-bottom:0; }
@@ -96,7 +96,7 @@ canvas { position:absolute; inset:0; width:100%; height:100%; display:block; }
 .mode-switch { display:flex; border:1px solid var(--line); border-radius:8px; overflow:hidden; }
 .mode-switch button { min-height:44px; min-width:76px; border:0; background:#071922; color:var(--muted); }
 .mode-switch button[aria-pressed="true"] { color:#041510; background:var(--mint); font-weight:700; }
-.learn-screen { min-height:calc(100vh - 68px); padding:clamp(24px,5vw,72px); background:radial-gradient(circle at 70% 10%,#123943 0,#06151d 55%); }
+.learn-screen { min-height:calc(100vh - 68px - var(--safe-top)); min-height:calc(100dvh - 68px - var(--safe-top)); padding:clamp(24px,5vw,72px) max(clamp(14px,5vw,72px),var(--safe-right)) max(clamp(24px,5vw,72px),var(--safe-bottom)) max(clamp(14px,5vw,72px),var(--safe-left)); background:radial-gradient(circle at 70% 10%,#123943 0,#06151d 55%); }
 .learn-hero { max-width:720px; margin:0 auto 34px; text-align:center; }
 .learn-hero h1 { margin:6px 0 14px; font-size:clamp(28px,5vw,52px); line-height:1.05; }
 .learn-hero > p:last-of-type { color:#b6cacc; line-height:1.6; }
@@ -132,5 +132,5 @@ canvas { position:absolute; inset:0; width:100%; height:100%; display:block; }
 body.training .canvas-wrap { min-height:500px; }
 
 @media (max-width:1050px) { .app-shell { grid-template-columns:250px minmax(430px,1fr); } .analysis-panel { grid-column:1/-1; border-left:0; border-top:1px solid var(--line); display:grid; grid-template-columns:1fr 1.2fr 1fr 1fr; gap:18px; } .analysis-panel section { border:0; } .lesson-coach { grid-template-columns:1fr 1fr; } .coach-actions { grid-column:1/-1; } .lesson-helm { grid-template-columns:1fr 1fr; } }
-@media (max-width:760px) { .topbar { height:auto; min-height:62px; flex-wrap:wrap; padding:10px 14px; } .brand { min-width:180px; } .model-pill,.ghost-button { display:none; } .mode-switch { margin-left:auto; } .learn-screen { padding:28px 14px; } .learn-actions { flex-direction:column; } .lesson-list { grid-template-columns:1fr; } .lesson-card { min-height:100px; } .app-shell { display:flex; flex-direction:column; } .sim-area { order:1; } .controls-panel { order:2; border-right:0; border-top:1px solid var(--line); } .analysis-panel { order:3; display:block; } .canvas-wrap { min-height:460px; } .panel { overflow:visible; } .transport { position:sticky; bottom:0; z-index:5; } .canvas-hint { max-width:220px; } .preset, .berth-button, .segmented button { min-height:44px; font-size:12px; } .lesson-coach { left:8px; right:8px; grid-template-columns:1fr; } .lesson-progress,.coach-actions { grid-column:1; } .lesson-result { grid-template-columns:1fr; max-height:150px; overflow:auto; } .lesson-helm { grid-template-columns:1fr; padding:10px; } .lesson-helm small { display:none; } body.training .canvas-wrap { min-height:520px; } }
+@media (max-width:760px) { .topbar { min-height:calc(62px + var(--safe-top)); flex-wrap:wrap; padding:calc(10px + var(--safe-top)) max(14px,var(--safe-right)) 10px max(14px,var(--safe-left)); } .brand { min-width:180px; } .model-pill,.ghost-button { display:none; } .mode-switch { margin-left:auto; } .learn-screen { padding:28px max(14px,var(--safe-right)) max(28px,var(--safe-bottom)) max(14px,var(--safe-left)); } .learn-actions { flex-direction:column; } .lesson-list { grid-template-columns:1fr; } .lesson-card { min-height:100px; } .app-shell { display:flex; flex-direction:column; } .sim-area { order:1; } .controls-panel { order:2; border-right:0; border-top:1px solid var(--line); padding-left:max(17px,var(--safe-left)); padding-right:max(17px,var(--safe-right)); } .analysis-panel { order:3; display:block; padding-left:max(17px,var(--safe-left)); padding-right:max(17px,var(--safe-right)); } .canvas-wrap { min-height:460px; } .panel { overflow:visible; } .transport { position:sticky; bottom:0; z-index:5; height:auto; min-height:64px; padding-bottom:max(10px,var(--safe-bottom)); padding-left:max(16px,var(--safe-left)); padding-right:max(16px,var(--safe-right)); } .canvas-hint { max-width:220px; left:max(18px,var(--safe-left)); } .preset, .berth-button, .segmented button { min-height:44px; font-size:12px; } .lesson-coach { left:max(8px,var(--safe-left)); right:max(8px,var(--safe-right)); grid-template-columns:1fr; } .lesson-progress,.coach-actions { grid-column:1; } .lesson-result { grid-template-columns:1fr; max-height:150px; overflow:auto; } .lesson-helm { grid-template-columns:1fr; padding:10px max(10px,var(--safe-right)) max(10px,var(--safe-bottom)) max(10px,var(--safe-left)); } .lesson-helm small { display:none; } body.training .canvas-wrap { min-height:520px; } }
 @media (max-height:500px) and (orientation:landscape) { .canvas-wrap,body.training .canvas-wrap { min-height:390px; } .lesson-coach { position:absolute; max-width:58%; right:auto; } .lesson-helm { grid-template-columns:1fr 140px 1fr; } .lesson-helm small,.lesson-helm label,.lesson-helm > output { display:none; } }
