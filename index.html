@@ -95,24 +95,41 @@
     </aside>
 
     <section class="sim-area" aria-label="Top-down simulation">
-      <div class="canvas-wrap">
-        <section id="lessonCoach" class="lesson-coach" aria-live="polite" hidden>
-          <div>
-            <p class="eyebrow">Current objective</p>
-            <h2 id="lessonTitle"></h2>
-            <p id="lessonObjective"></p>
-            <p id="lessonTarget" class="lesson-target"></p>
-            <div class="lesson-explanation">
-              <strong>Why it works</strong>
-              <p id="lessonExplanation"></p>
-              <strong>Try it</strong>
-              <p id="lessonExperiment"></p>
-            </div>
+      <section id="lessonCoach" class="lesson-coach" aria-live="polite" hidden>
+        <div>
+          <p class="eyebrow">Current objective</p>
+          <h2 id="lessonTitle"></h2>
+          <p id="lessonObjective"></p>
+          <p id="lessonTarget" class="lesson-target"></p>
+          <div class="lesson-dock">
+            <strong>The dock</strong>
+            <p id="lessonDock"></p>
           </div>
-          <div class="lesson-progress"><span id="lessonProgress"></span><strong id="lessonHint"></strong></div>
-          <div id="lessonResult" class="lesson-result" hidden></div>
-          <div class="coach-actions"><button id="connectLessonLines" type="button">Set lesson lines</button><button id="retryLesson" type="button">Retry</button><button id="nextLesson" type="button">Next lesson</button><button id="exitLesson" type="button">Exit lesson</button></div>
-        </section>
+          <div class="lesson-start">
+            <strong>Start here</strong>
+            <p id="lessonStart"></p>
+          </div>
+          <div class="lesson-steps">
+            <strong>Do this in order</strong>
+            <ol id="lessonSteps"></ol>
+          </div>
+          <div class="lesson-done">
+            <strong>You’re done when</strong>
+            <p id="lessonDone"></p>
+          </div>
+          <div class="lesson-explanation">
+            <strong>Why it works</strong>
+            <p id="lessonExplanation"></p>
+            <strong>Try it</strong>
+            <p id="lessonExperiment"></p>
+          </div>
+        </div>
+        <div class="lesson-progress"><span id="lessonProgress"></span><strong id="lessonHint"></strong></div>
+        <div id="lessonResult" class="lesson-result" hidden></div>
+        <p id="lessonLineNote" class="lesson-line-note" hidden></p>
+        <div class="coach-actions"><button id="connectLessonLines" type="button">Connect tutorial lines</button><button id="retryLesson" type="button">Retry</button><button id="nextLesson" type="button">Next lesson</button><button id="exitLesson" type="button">Exit lesson</button></div>
+      </section>
+      <div class="canvas-wrap">
         <canvas id="simCanvas" aria-label="Top-down view of sailboat and dock"></canvas>
         <div class="compass" aria-hidden="true"><span>N</span><i></i></div>
         <div class="scale"><i></i><span>5 m</span></div>

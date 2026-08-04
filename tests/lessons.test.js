@@ -28,6 +28,8 @@ test('every lesson has a valid deterministic setup and coaching content', () => 
     assert.ok(lesson.briefing.length >= 20);
     assert.ok(lesson.explanation.length >= 80);
     assert.ok(lesson.experiment.length >= 40);
+    assert.ok(lesson.startHere.length >= 30);
+    assert.ok(lesson.doneWhen.length >= 40);
     assert.ok(lesson.steps.length > 0);
     assert.ok(lesson.hints.length > 0);
     assert.ok(Object.keys(lesson.success).length > 0);

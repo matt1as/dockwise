@@ -59,11 +59,56 @@ const lessonExplanations = {
   },
 };
 
+const lessonInstructions = {
+  'momentum-neutral': {
+    start: 'Leave the engine in Neutral. Set throttle to about 35%.',
+    done: 'You are done when the boat is inside the target circle, stopped, and has not touched the dock.',
+  },
+  'rudder-flow': {
+    start: 'Leave the rudder centered. First try turning in Neutral, then repeat with a short Ahead pulse.',
+    done: 'You are done when the boat reaches the target with a small speed and the bow is pointing within the target angle.',
+  },
+  'reverse-prop-walk': {
+    start: 'Set the throttle to about 35%. Keep the rudder centered so the sideways reverse effect is easy to see.',
+    done: 'You are done when the boat settles near the target after a short reverse pulse, without building excess speed.',
+  },
+  'controlled-pivot': {
+    start: 'Start stopped with low throttle. Use small helm and engine inputs; do not hold full power.',
+    done: 'You are done when the heading reads about 090°, the boat is within 1.5 m of the target, and speed is low.',
+  },
+  'aft-spring-departure': {
+    start: 'Click Connect tutorial lines first. The aft spring is already attached; select Ahead at low throttle.',
+    done: 'You are done when the bow has opened, the line is not overloaded, and the boat is moving away slowly.',
+  },
+  'offshore-wind-departure': {
+    start: 'Click Connect tutorial lines first. Select Ahead gently and let the offshore wind help create separation.',
+    done: 'You are done when the boat is clear of the dock, the spring is not overloaded, and speed remains low.',
+  },
+  'arrive-alongside': {
+    start: 'Begin well clear of the dock. Select Ahead briefly, then use Neutral early rather than carrying speed in.',
+    done: 'You are done when the boat is alongside, parallel, stopped, and inside the target area without contact.',
+  },
+  'bow-to-control': {
+    start: 'Click Connect tutorial lines first. Approach bow-first at walking pace and keep both forward lines balanced.',
+    done: 'You are done when the bow is in the target, the heading is within tolerance, and neither line is overloaded.',
+  },
+  'stern-to-control': {
+    start: 'Click Connect tutorial lines first. Reverse in short pulses and pause in Neutral between corrections.',
+    done: 'You are done when the stern is in the target, the heading is within tolerance, and both aft lines share the load.',
+  },
+  'mixed-conditions': {
+    start: 'Turn Analysis on and look at the wind/current arrows. Choose a slow approach before selecting Ahead or Astern.',
+    done: 'You are done when the boat is in the target, stopped and clear, with no collision or overloaded line.',
+  },
+};
+
 function lesson(id, order, title, briefing, setup, target, steps, hints, failure = {}) {
   const coaching = lessonExplanations[id];
+  const instructions = lessonInstructions[id];
   return {
     id, order, title, durationLabel: order < 5 ? '2 min' : '3 min', briefing,
-    explanation: coaching.explanation, experiment: coaching.experiment, steps,
+    explanation: coaching.explanation, experiment: coaching.experiment,
+    startHere: instructions.start, doneWhen: instructions.done, steps,
     setup,
     success: { target, maxSpeed: order < 7 ? 0.3 : 0.2, stableFor: 1 },
     failure: { collision: true, maxLineLoad: 9000, maxDuration: 180, ...failure },
@@ -102,7 +147,7 @@ export function validateLesson(value) {
   }
   if (!value.success || Object.keys(value.success).length === 0) throw new Error('At least one success criterion is required');
   assertFinite(value.success);
-  if (!Array.isArray(value.steps) || !value.steps.length || !Array.isArray(value.hints) || !value.hints.length || typeof value.explanation !== 'string' || value.explanation.length < 80 || typeof value.experiment !== 'string' || value.experiment.length < 40) throw new Error('Coaching content is required');
+  if (!Array.isArray(value.steps) || !value.steps.length || !Array.isArray(value.hints) || !value.hints.length || typeof value.explanation !== 'string' || value.explanation.length < 80 || typeof value.experiment !== 'string' || value.experiment.length < 40 || typeof value.startHere !== 'string' || value.startHere.length < 30 || typeof value.doneWhen !== 'string' || value.doneWhen.length < 40) throw new Error('Coaching content is required');
   return true;
 }
 

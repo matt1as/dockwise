@@ -97,6 +97,10 @@ const lessonStart = await evaluate(`(() => {
     helmVisible: !document.querySelector('#lessonHelm').hidden,
     explanation: document.querySelector('#lessonExplanation').textContent.trim(),
     experiment: document.querySelector('#lessonExperiment').textContent.trim(),
+    dock: document.querySelector('#lessonDock').textContent.trim(),
+    start: document.querySelector('#lessonStart').textContent.trim(),
+    done: document.querySelector('#lessonDone').textContent.trim(),
+    steps: document.querySelectorAll('#lessonSteps li').length,
     lineAssistHidden: document.querySelector('#connectLessonLines').hidden,
     objective: document.querySelector('#lessonObjective').textContent.trim(),
     hint: document.querySelector('#lessonHint').textContent.trim(),
@@ -108,6 +112,8 @@ assert(lessonStart.before.lesson.id === 'momentum-neutral' && lessonStart.before
 assert(!lessonStart.before.running && lessonStart.after.elapsed === 0.05, 'fixed steps should be observed by the training evaluator');
 assert(lessonStart.coachVisible && lessonStart.helmVisible, 'active lesson should expose coach and touch helm');
 assert(lessonStart.explanation.length >= 80 && lessonStart.experiment.length >= 40, 'active lesson should explain the cause and suggest an experiment');
+assert(lessonStart.dock.includes('dock') && lessonStart.dock.includes('fixed'), 'active lesson should explain the dock and its role');
+assert(lessonStart.start.length >= 30 && lessonStart.done.length >= 40 && lessonStart.steps === 3, 'active lesson should show start, ordered steps, and completion guidance');
 assert(lessonStart.lineAssistHidden, 'line setup aid should stay hidden when the lesson has no prescribed lines');
 assert(lessonStart.objective && lessonStart.hint && lessonStart.progress, 'lesson objective, hint, and progress should be accessible');
 assert(lessonStart.synchronized.engine && lessonStart.synchronized.rudder === '35' && lessonStart.synchronized.touchRudder, 'keyboard helm should synchronize lesson and Sandbox controls');
@@ -148,6 +154,13 @@ assert(targetGuidance.title === 'Controlled pivot', 'controlled-pivot lesson sho
 assert(targetGuidance.target.includes('090°') && targetGuidance.target.includes('±15°'), 'controlled-pivot should show its target heading and tolerance');
 await evaluate(`document.querySelector('#exitLesson').click()`);
 
+const springGuidance = await evaluate(`(() => {
+  window.__dockwise.startLesson('aft-spring-departure');
+  return { lines: window.__dockwise.getLines().length, visible: !document.querySelector('#connectLessonLines').hidden };
+})()`);
+assert(springGuidance.lines === 1 && springGuidance.visible, 'aft-spring tutorial should expose its prescribed line and connection action');
+await evaluate(`document.querySelector('#exitLesson').click()`);
+
 const lineAssist = await evaluate(`(() => {
   window.__dockwise.startLesson('bow-to-control');
   const prescribed = window.__dockwise.getLines();
@@ -155,6 +168,8 @@ const lineAssist = await evaluate(`(() => {
   const restored = window.__dockwise.getLines();
   return {
     visible: !document.querySelector('#connectLessonLines').hidden,
+    label: document.querySelector('#connectLessonLines').textContent.trim(),
+    note: document.querySelector('#lessonLineNote').textContent.trim(),
     prescribed: prescribed.map(line => line.boatCleat + ':' + line.boatSide + '->' + line.dockCleat),
     restored: restored.map(line => line.boatCleat + ':' + line.boatSide + '->' + line.dockCleat),
     elapsed: window.__dockwise.getTrainingState().elapsed,
@@ -162,6 +177,8 @@ const lineAssist = await evaluate(`(() => {
   };
 })()`);
 assert(lineAssist.visible, 'line setup aid should be visible when a lesson prescribes lines');
+assert(lineAssist.label === 'Connect tutorial lines', 'line setup aid should explain that it connects the tutorial lines');
+assert(lineAssist.note.includes('exact lines') && lineAssist.note.includes('still have to dock'), 'line setup aid should explain its limits');
 assert(lineAssist.restored.length === 2 && lineAssist.restored.join(',') === lineAssist.prescribed.join(','), 'line setup aid should restore every prescribed line at its configured cleat');
 assert(lineAssist.elapsed === 0 && lineAssist.status === 'running', 'line setup aid should reset the lesson attempt without advancing it');
 await evaluate(`document.querySelector('#exitLesson').click()`);
@@ -341,9 +358,9 @@ assert(mobileGuidance.summary.length > 40, 'mobile guidance should contain a use
 const mobileGuidanceShot = await send('Page.captureScreenshot', { format: 'png', captureBeyondViewport: false });
 await fs.writeFile('test-artifacts/dockwise-mobile-guidance.png', Buffer.from(mobileGuidanceShot.data, 'base64'));
 
-await evaluate(`window.__dockwise.startLesson('rudder-flow')`);
+await evaluate(`window.__dockwise.startLesson('bow-to-control')`);
 await sleep(200);
-await evaluate(`document.querySelector('#lessonHelm').scrollIntoView({ block: 'center' })`);
+await evaluate(`document.querySelector('#lessonCoach').scrollIntoView({ block: 'start' })`);
 await sleep(150);
 const portraitLesson = await evaluate(`(() => ({
   overflow: document.documentElement.scrollWidth - innerWidth,
@@ -352,10 +369,13 @@ const portraitLesson = await evaluate(`(() => ({
     return { label: button.textContent.trim(), width: rect.width, height: rect.height };
   }),
   coachVisible: !document.querySelector('#lessonCoach').hidden,
+  coachBottom: document.querySelector('#lessonCoach').getBoundingClientRect().bottom,
+  canvasTop: document.querySelector('.canvas-wrap').getBoundingClientRect().top,
   helmVisible: !document.querySelector('#lessonHelm').hidden
 }))()`);
 assert(portraitLesson.overflow <= 1, 'portrait lesson layout should not overflow horizontally');
 assert(portraitLesson.coachVisible && portraitLesson.helmVisible, 'portrait lesson should keep coach and touch helm visible');
+assert(portraitLesson.coachBottom <= portraitLesson.canvasTop + 1, 'tutorial instructions must remain outside the simulation canvas');
 assert(portraitLesson.targets.length === 6 && portraitLesson.targets.every(target => target.width >= 44 && target.height >= 44), 'portrait lesson helm targets should be at least 44px');
 const portraitLessonShot = await send('Page.captureScreenshot', { format: 'png', captureBeyondViewport: false });
 await fs.writeFile('test-artifacts/dockwise-mobile-lesson.png', Buffer.from(portraitLessonShot.data, 'base64'));

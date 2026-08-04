@@ -360,10 +360,25 @@ function renderLessonCoach() {
   coach.hidden = false;
   $('#lessonTitle').textContent = activeLesson.title;
   renderLessonTarget();
+  const tutorialUsesLines = Boolean(activeLesson.setup.lines?.length || activeLesson.setup.preset !== 'clear');
+  $('#lessonDock').textContent = tutorialUsesLines
+    ? 'The brown dock is fixed in place. The tutorial lines connect your boat to numbered dock cleats; tension limits movement instead of steering the boat for you.'
+    : 'The brown dock is fixed in place. Start without lines so you can feel the boat’s own momentum, thrust, rudder, wind, and current before adding restraint.';
+  $('#lessonStart').textContent = activeLesson.startHere;
+  $('#lessonDone').textContent = activeLesson.doneWhen;
+  $('#lessonSteps').replaceChildren(...activeLesson.steps.map((step) => {
+    const item = document.createElement('li');
+    item.textContent = step;
+    return item;
+  }));
   $('#lessonObjective').textContent = activeLesson.steps[Math.min(activeLesson.steps.length - 1, trainingSession.status === 'running' ? 0 : activeLesson.steps.length - 1)];
   $('#lessonExplanation').textContent = activeLesson.explanation;
   $('#lessonExperiment').textContent = activeLesson.experiment;
-  $('#connectLessonLines').hidden = !activeLesson.setup.lines?.length;
+  $('#connectLessonLines').hidden = !tutorialUsesLines;
+  $('#lessonLineNote').hidden = !tutorialUsesLines;
+  $('#lessonLineNote').textContent = tutorialUsesLines
+    ? 'Need a starting point? This connects the exact lines prescribed for this exercise. It resets the setup only; you still have to dock the boat.'
+    : '';
   const required = activeLesson.success.stableFor || 0;
   $('#lessonProgress').textContent = trainingSession.status === 'running'
     ? `Stable target: ${trainingSession.stableTargetDuration.toFixed(1)} / ${required.toFixed(1)} s`
@@ -416,8 +431,9 @@ function setLessonLines(specifications = []) {
 function applyLessonSetup(setup) {
   setBerthMode(setup.berthMode);
   applyPreset(setup.preset);
+  const presetLines = lines;
   state = createInitialState(setup.state);
-  setLessonLines(setup.lines);
+  setLessonLines(setup.lines ?? presetLines);
   setEngine(setup.controls.engine);
   setThrottle(setup.controls.throttle * 100);
   setRudder(setup.controls.rudderDeg);
