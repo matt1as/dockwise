@@ -94,9 +94,9 @@ function makeLine(boatCleat, dockId, slackPercent = 3, boatSide = 'port') {
     dockCleat: dockId,
     dockPoint: { x: dock.x, y: dock.y },
     restLength: length * (1 + slackPercent / 100),
-    stiffness: 3600,
-    damping: 800,
-    maxLoad: 9000,
+    stiffness: BOAT_PRESET.lineStiffness,
+    damping: BOAT_PRESET.lineDamping,
+    maxLoad: BOAT_PRESET.lineMaxLoad,
     color: colors[(lineCounter - 1) % colors.length],
   };
 }

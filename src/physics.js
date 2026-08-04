@@ -5,6 +5,11 @@ export const BOAT_PRESET = Object.freeze({
   beam: 3.2,
   mass: 5200,
   inertia: 52000,
+  // Default mooring lines are treated as low-stretch yacht lines. Individual
+  // scenarios may override stiffness/damping when modelling softer rope.
+  lineStiffness: 14000,
+  lineDamping: 9000,
+  lineMaxLoad: 9000,
   propWalkDirection: 'port',
   cleats: Object.freeze({
     aft: Object.freeze({ x: -4.05, y: -1.25, label: 'Aft' }),
@@ -103,10 +108,10 @@ export function computeLineForce(boatPoint, dockPoint, line, boatPointVelocity =
 
   const direction = scale(delta, 1 / distance);
   const separatingSpeed = -(boatPointVelocity.x * direction.x + boatPointVelocity.y * direction.y);
-  const elastic = Math.max(0, Number(line.stiffness ?? 3500)) * stretch;
-  const damping = Math.max(0, Number(line.damping ?? 900)) * Math.max(0, separatingSpeed);
+  const elastic = Math.max(0, Number(line.stiffness ?? BOAT_PRESET.lineStiffness)) * stretch;
+  const damping = Math.max(0, Number(line.damping ?? BOAT_PRESET.lineDamping)) * Math.max(0, separatingSpeed);
   const tension = Math.max(0, elastic + damping);
-  const maxLoad = Math.max(0, Number(line.maxLoad ?? 9000));
+  const maxLoad = Math.max(0, Number(line.maxLoad ?? BOAT_PRESET.lineMaxLoad));
 
   return {
     force: scale(direction, tension),

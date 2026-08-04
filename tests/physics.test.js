@@ -58,6 +58,27 @@ test('a slack line produces no force', () => {
   assert.deepEqual(result.force, { x: 0, y: 0 });
 });
 
+test('default mooring lines use the stiff boat preset', () => {
+  assert.ok(BOAT_PRESET.lineStiffness > 3500);
+  const result = computeLineForce(
+    { x: 0, y: 0 },
+    { x: 3, y: 0 },
+    { restLength: 2, damping: 0, maxLoad: 100000 },
+    { x: 0, y: 0 }
+  );
+  near(result.tension, BOAT_PRESET.lineStiffness);
+});
+
+test('line stiffness remains configurable per line', () => {
+  const result = computeLineForce(
+    { x: 0, y: 0 },
+    { x: 3, y: 0 },
+    { restLength: 2, stiffness: 100, damping: 0, maxLoad: 100000 },
+    { x: 0, y: 0 }
+  );
+  near(result.tension, 100);
+});
+
 test('a taut line pulls toward the dock cleat and reports overload', () => {
   const result = computeLineForce(
     { x: 0, y: 0 },
