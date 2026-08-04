@@ -349,6 +349,9 @@ function renderLessonCoach() {
   coach.hidden = false;
   $('#lessonTitle').textContent = activeLesson.title;
   $('#lessonObjective').textContent = activeLesson.steps[Math.min(activeLesson.steps.length - 1, trainingSession.status === 'running' ? 0 : activeLesson.steps.length - 1)];
+  $('#lessonExplanation').textContent = activeLesson.explanation;
+  $('#lessonExperiment').textContent = activeLesson.experiment;
+  $('#connectLessonLines').hidden = !activeLesson.setup.lines?.length;
   const required = activeLesson.success.stableFor || 0;
   $('#lessonProgress').textContent = trainingSession.status === 'running'
     ? `Stable target: ${trainingSession.stableTargetDuration.toFixed(1)} / ${required.toFixed(1)} s`
@@ -390,15 +393,19 @@ function observeActiveTraining(dt) {
   renderLessonCoach();
 }
 
+function setLessonLines(specifications = []) {
+  lines = [];
+  lineCounter = 0;
+  for (const specification of specifications) {
+    lines.push(makeLine(specification.boatCleat, specification.dockCleat, specification.slackPercent, specification.boatSide));
+  }
+}
+
 function applyLessonSetup(setup) {
   setBerthMode(setup.berthMode);
   applyPreset(setup.preset);
   state = createInitialState(setup.state);
-  lines = [];
-  lineCounter = 0;
-  for (const specification of setup.lines || []) {
-    lines.push(makeLine(specification.boatCleat, specification.dockCleat, specification.slackPercent, specification.boatSide));
-  }
+  setLessonLines(setup.lines);
   setEngine(setup.controls.engine);
   setThrottle(setup.controls.throttle * 100);
   setRudder(setup.controls.rudderDeg);
@@ -435,6 +442,15 @@ function startLesson(lessonId) {
   updateOutputs();
   const coach = $('#lessonCoach'); coach.tabIndex = -1; coach.focus({ preventScroll: true });
   return clone(trainingSession);
+}
+
+function resetLessonSetup() {
+  if (!activeLesson) return;
+  trainingSession = createTrainingSession(activeLesson, activeLesson.setup.state);
+  trainingOutcomeStored = false;
+  applyLessonSetup(activeLesson.setup);
+  renderLessonCoach();
+  updateOutputs();
 }
 
 function exitLesson() {
@@ -758,6 +774,7 @@ $$('[data-app-mode]').forEach((button) => button.addEventListener('click', () =>
 }));
 $('#skipToSandbox').addEventListener('click', () => { store.completeOnboarding(); setAppMode('sandbox'); });
 $('#startFirstLesson').addEventListener('click', () => { store.completeOnboarding(); startLesson(LESSONS[0].id); });
+$('#connectLessonLines').addEventListener('click', resetLessonSetup);
 $('#retryLesson').addEventListener('click', () => { if (activeLesson) startLesson(activeLesson.id); });
 $('#exitLesson').addEventListener('click', exitLesson);
 $('#nextLesson').addEventListener('click', () => {
@@ -787,6 +804,7 @@ window.__dockwise = {
   setPropWalkDirection,
   applyPreset,
   startLesson,
+  resetLessonSetup,
   step: (seconds = 0.05) => { state = stepSimulation(state, currentControls(), seconds); observeActiveTraining(seconds); updateOutputs(); return clone(state); },
 };
 

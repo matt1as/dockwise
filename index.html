@@ -97,10 +97,20 @@
     <section class="sim-area" aria-label="Top-down simulation">
       <div class="canvas-wrap">
         <section id="lessonCoach" class="lesson-coach" aria-live="polite" hidden>
-          <div><p class="eyebrow">Current objective</p><h2 id="lessonTitle"></h2><p id="lessonObjective"></p></div>
+          <div>
+            <p class="eyebrow">Current objective</p>
+            <h2 id="lessonTitle"></h2>
+            <p id="lessonObjective"></p>
+            <div class="lesson-explanation">
+              <strong>Why it works</strong>
+              <p id="lessonExplanation"></p>
+              <strong>Try it</strong>
+              <p id="lessonExperiment"></p>
+            </div>
+          </div>
           <div class="lesson-progress"><span id="lessonProgress"></span><strong id="lessonHint"></strong></div>
           <div id="lessonResult" class="lesson-result" hidden></div>
-          <div class="coach-actions"><button id="retryLesson" type="button">Retry</button><button id="nextLesson" type="button">Next lesson</button><button id="exitLesson" type="button">Exit lesson</button></div>
+          <div class="coach-actions"><button id="connectLessonLines" type="button">Set lesson lines</button><button id="retryLesson" type="button">Retry</button><button id="nextLesson" type="button">Next lesson</button><button id="exitLesson" type="button">Exit lesson</button></div>
         </section>
         <canvas id="simCanvas" aria-label="Top-down view of sailboat and dock"></canvas>
         <div class="compass" aria-hidden="true"><span>N</span><i></i></div>
@@ -122,7 +132,7 @@
       </div>
       <div class="transport">
         <button id="reset" class="icon-button" type="button" title="Reset" aria-label="Reset">↺</button>
-        <button id="playPause" class="play-button" type="button">▶ Run</button>
+        <button id="playPause" class="play-button" type="button" title="Run advances time; Ahead or Astern creates thrust">▶ Run</button>
         <button id="step" class="icon-button" type="button" title="Step simulation" aria-label="Step simulation">›|</button>
         <label class="speed-control">Speed<select id="simSpeed"><option value="0.25">0.25×</option><option value="0.5">0.5×</option><option value="1" selected>1×</option><option value="2">2×</option></select></label>
         <span class="time-readout">T+ <output id="timeValue">00:00.0</output></span>

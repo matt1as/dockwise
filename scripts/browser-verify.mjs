@@ -95,6 +95,9 @@ const lessonStart = await evaluate(`(() => {
     before, after, synchronized, throttle, formInputIgnored,
     coachVisible: !document.querySelector('#lessonCoach').hidden,
     helmVisible: !document.querySelector('#lessonHelm').hidden,
+    explanation: document.querySelector('#lessonExplanation').textContent.trim(),
+    experiment: document.querySelector('#lessonExperiment').textContent.trim(),
+    lineAssistHidden: document.querySelector('#connectLessonLines').hidden,
     objective: document.querySelector('#lessonObjective').textContent.trim(),
     hint: document.querySelector('#lessonHint').textContent.trim(),
     progress: document.querySelector('#lessonProgress').textContent.trim(),
@@ -104,6 +107,8 @@ const lessonStart = await evaluate(`(() => {
 assert(lessonStart.before.lesson.id === 'momentum-neutral' && lessonStart.before.status === 'running', 'first lesson should start paused and deterministically');
 assert(!lessonStart.before.running && lessonStart.after.elapsed === 0.05, 'fixed steps should be observed by the training evaluator');
 assert(lessonStart.coachVisible && lessonStart.helmVisible, 'active lesson should expose coach and touch helm');
+assert(lessonStart.explanation.length >= 80 && lessonStart.experiment.length >= 40, 'active lesson should explain the cause and suggest an experiment');
+assert(lessonStart.lineAssistHidden, 'line setup aid should stay hidden when the lesson has no prescribed lines');
 assert(lessonStart.objective && lessonStart.hint && lessonStart.progress, 'lesson objective, hint, and progress should be accessible');
 assert(lessonStart.synchronized.engine && lessonStart.synchronized.rudder === '35' && lessonStart.synchronized.touchRudder, 'keyboard helm should synchronize lesson and Sandbox controls');
 assert(lessonStart.throttle.sandbox === '42' && lessonStart.throttle.lesson === '42' && lessonStart.throttle.output === '42%', 'touch throttle should synchronize both control surfaces');
@@ -131,6 +136,24 @@ assert(retry.failure.training.status === 'failed' && retry.failure.training.fail
 assert(retry.failure.role === 'alert' && retry.failure.progress.includes('time-limit'), 'lesson failure should be announced accessibly');
 assert(retry.failure.dimensions.length === 3 && retry.failure.dimensions[0].startsWith('Control:') && retry.failure.dimensions[1].startsWith('Smoothness:') && retry.failure.dimensions[2].startsWith('Accuracy:'), 'lesson result should keep Control, Smoothness, and Accuracy separate');
 assert(retry.attempts === 2 && retry.learnVisible, 'Retry should persist another attempt and Exit should return to Learn');
+
+const lineAssist = await evaluate(`(() => {
+  window.__dockwise.startLesson('bow-to-control');
+  const prescribed = window.__dockwise.getLines();
+  document.querySelector('#connectLessonLines').click();
+  const restored = window.__dockwise.getLines();
+  return {
+    visible: !document.querySelector('#connectLessonLines').hidden,
+    prescribed: prescribed.map(line => line.boatCleat + ':' + line.boatSide + '->' + line.dockCleat),
+    restored: restored.map(line => line.boatCleat + ':' + line.boatSide + '->' + line.dockCleat),
+    elapsed: window.__dockwise.getTrainingState().elapsed,
+    status: window.__dockwise.getTrainingState().status
+  };
+})()`);
+assert(lineAssist.visible, 'line setup aid should be visible when a lesson prescribes lines');
+assert(lineAssist.restored.length === 2 && lineAssist.restored.join(',') === lineAssist.prescribed.join(','), 'line setup aid should restore every prescribed line at its configured cleat');
+assert(lineAssist.elapsed === 0 && lineAssist.status === 'running', 'line setup aid should reset the lesson attempt without advancing it');
+await evaluate(`document.querySelector('#exitLesson').click()`);
 
 await evaluate(`document.querySelector('#skipToSandbox').click()`);
 await sleep(300);

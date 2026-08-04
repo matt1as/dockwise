@@ -16,9 +16,54 @@ const setups = {
   mixed: { berthMode: 'alongside', preset: 'clear', state: { x: -5, y: 3.5, heading: 0.12 }, controls: { engine: 0, throttle: 0.35, rudderDeg: 0, propWalk: 0.65 }, wind: { speed: 4, directionDeg: 235 }, current: { speed: 0.35, directionDeg: 320 } },
 };
 
+const lessonExplanations = {
+  'momentum-neutral': {
+    explanation: 'Ahead creates forward thrust and builds momentum. When you select Neutral, the propeller stops adding thrust, but the boat keeps moving because its mass is already in motion. Water resistance gradually removes that momentum; the earlier you select Neutral, the more gently you arrive at the target.',
+    experiment: 'Run once with Neutral and notice that time advances but the boat stays still. Then select Ahead, run briefly, and select Neutral to feel the difference between thrust and coasting.',
+  },
+  'rudder-flow': {
+    explanation: 'The rudder is not a steering wheel in the water: it needs water flowing across it. With the engine stopped and the boat stationary, helm input has very little effect. Ahead creates prop wash over the rudder, and forward motion creates flow along the hull, so the same rudder angle becomes more effective.',
+    experiment: 'Try the same rudder angle first in Neutral, then with a short Ahead pulse. Watch the turn-rate readout and compare how quickly the heading responds.',
+  },
+  'reverse-prop-walk': {
+    explanation: 'In reverse, the propeller accelerates water sideways as well as astern. That sideways reaction is prop walk, and on this boat the calibrated default is toward port. It is strongest during the first moments of an astern pulse, before the boat has built much sternway.',
+    experiment: 'Use a short Astern pulse, return to Neutral, and observe the sideways displacement. Repeat with prop walk Off to separate prop-walk motion from ordinary reverse motion.',
+  },
+  'controlled-pivot': {
+    explanation: 'At low speed the boat can turn around its underwater resistance and thrust points. Rudder, prop wash, and the hull’s resistance do not act at the same point, so they create a turning moment. Short inputs let you feel that moment without allowing speed or yaw to build beyond control.',
+    experiment: 'Hold a small helm angle, then center it before the target heading. Compare that with holding full helm; the second attempt shows why counter-steering and early neutral matter.',
+  },
+  'aft-spring-departure': {
+    explanation: 'An aft spring is attached near the stern but runs forward to the dock. Ahead thrust pushes against that restrained point, so the stern stays near the dock while the bow swings away. Once the bow is clear, releasing the line removes the pivot and lets the boat leave normally.',
+    experiment: 'Connect the lesson lines, use gentle Ahead, and watch the bow open before releasing. Then try the same thrust without the spring to see that the turning geometry has changed.',
+  },
+  'offshore-wind-departure': {
+    explanation: 'The wind is already pushing the boat away from the dock, so it can help the spring departure. The spring gives the thrust a controlled pivot while the wind adds sideways separation. Too much engine or leaving the line too late can still create unnecessary load.',
+    experiment: 'Use the wind as assistance: add only enough Ahead to open the bow, monitor line load, and release while the boat is still slow.',
+  },
+  'arrive-alongside': {
+    explanation: 'An alongside arrival is mainly a momentum-management exercise. Thrust gets you close, but Neutral gives the water and hull resistance time to remove speed. A parallel final heading leaves fewer sideways corrections and keeps the boat clear of the dock.',
+    experiment: 'Approach once while carrying extra speed, then repeat at walking pace with an earlier Neutral. Compare peak speed, sideways speed, and how much correction is needed near the dock.',
+  },
+  'bow-to-control': {
+    explanation: 'Bow-to lines share load only when the approach is balanced. If one forward line takes most of the tension, the boat can yaw around that line instead of settling straight. Small corrections and low speed keep both lines working as a pair.',
+    experiment: 'Use the line setup button, approach slowly, and compare the two live line loads. Add power only after checking whether one line is already carrying the maneuver.',
+  },
+  'stern-to-control': {
+    explanation: 'Stern-to reversing combines three effects: astern thrust, port prop walk, and the restoring forces from the paired aft lines. Short reverse pulses make each effect visible. Neutral pauses let momentum decay before the next correction, which is easier to control than continuous reverse.',
+    experiment: 'Connect both aft lines, pulse Astern, pause in Neutral, and watch the line loads and sideways motion before choosing the next correction.',
+  },
+  'mixed-conditions': {
+    explanation: 'Wind and current add forces even when the engine is Neutral. Their direction matters as much as their strength, and the force arrows show the qualitative balance. Plan the approach around the environmental drift, then use small engine and rudder inputs instead of trying to overpower everything.',
+    experiment: 'Pause with Analysis on and identify where wind and current point. Make a low-speed approach, then use Neutral early and check whether the remaining drift is carrying you toward or away from the target.',
+  },
+};
+
 function lesson(id, order, title, briefing, setup, target, steps, hints, failure = {}) {
+  const coaching = lessonExplanations[id];
   return {
-    id, order, title, durationLabel: order < 5 ? '2 min' : '3 min', briefing, steps,
+    id, order, title, durationLabel: order < 5 ? '2 min' : '3 min', briefing,
+    explanation: coaching.explanation, experiment: coaching.experiment, steps,
     setup,
     success: { target, maxSpeed: order < 7 ? 0.3 : 0.2, stableFor: 1 },
     failure: { collision: true, maxLineLoad: 9000, maxDuration: 180, ...failure },
@@ -27,7 +72,7 @@ function lesson(id, order, title, briefing, setup, target, steps, hints, failure
 }
 
 const catalog = [
-  lesson('momentum-neutral', 1, 'Momentum and neutral', 'Build gentle headway, select neutral, and stop under control.', setups.momentum, { x: -2, y: 2.8, radius: 0.8, heading: 0, headingToleranceDeg: 12 }, ['Select Ahead below 45% throttle.', 'Return to Neutral before the target.', 'Settle without dock contact.'], ['Neutral removes thrust; it does not remove momentum.']),
+  lesson('momentum-neutral', 1, 'Momentum and neutral', 'Run starts the clock, but Ahead creates the thrust: build gentle headway, then select Neutral and stop under control.', setups.momentum, { x: -2, y: 2.8, radius: 0.8, heading: 0, headingToleranceDeg: 12 }, ['Select Ahead below 45% throttle.', 'Return to Neutral before the target.', 'Settle without dock contact.'], ['Neutral removes thrust; it does not remove momentum.']),
   lesson('rudder-flow', 2, 'Rudder needs flow', 'Feel how rudder authority grows with headway and propeller wash.', setups.rudder, { x: -1.5, y: 3.4, radius: 1, heading: 0.2, headingToleranceDeg: 18 }, ['Try helm while neutral.', 'Use gentle Ahead and repeat.', 'Center the rudder as the bow turns.'], ['A rudder needs water flowing across it.']),
   lesson('reverse-prop-walk', 3, 'Reverse prop walk', 'Use a short astern pulse and observe the configured stern tendency.', setups.reverse, { x: 0.5, y: 2.5, radius: 1.2, heading: 0, headingToleranceDeg: 20 }, ['Select Astern.', 'Watch the sideways movement.', 'Return to Neutral and settle.'], ['A short pulse shows prop walk without building excess speed.']),
   lesson('controlled-pivot', 4, 'Controlled pivot', 'Rotate toward the target heading while remaining inside the safe area.', setups.pivot, { x: 0, y: 3, radius: 1.5, heading: Math.PI / 2, headingToleranceDeg: 15 }, ['Use low power and helm.', 'Counter the turn early.', 'Finish nearly stopped.'], ['Alternate short inputs instead of holding full power.']),
@@ -57,7 +102,7 @@ export function validateLesson(value) {
   }
   if (!value.success || Object.keys(value.success).length === 0) throw new Error('At least one success criterion is required');
   assertFinite(value.success);
-  if (!Array.isArray(value.steps) || !value.steps.length || !Array.isArray(value.hints) || !value.hints.length) throw new Error('Coaching content is required');
+  if (!Array.isArray(value.steps) || !value.steps.length || !Array.isArray(value.hints) || !value.hints.length || typeof value.explanation !== 'string' || value.explanation.length < 80 || typeof value.experiment !== 'string' || value.experiment.length < 40) throw new Error('Coaching content is required');
   return true;
 }
 
