@@ -249,6 +249,17 @@ function formatTime(seconds) {
   return `${minutes}:${rest}`;
 }
 
+function formatHeadingDegrees(radians) {
+  return ((radians * 180 / Math.PI + 360) % 360).toFixed(0).padStart(3, '0');
+}
+
+function renderLessonTarget() {
+  const target = activeLesson.success.target;
+  const parts = [`heading ${formatHeadingDegrees(target.heading)}° ±${target.headingToleranceDeg}°`];
+  if (Number.isFinite(target.radius)) parts.push(`within ${target.radius.toFixed(1)} m of the target position`);
+  $('#lessonTarget').textContent = `Target: ${parts.join(' · ')}`;
+}
+
 function updateOutputs() {
   const knot = 1.94384;
   $('#speedValue').textContent = (state.speed * knot).toFixed(2);
@@ -348,6 +359,7 @@ function renderLessonCoach() {
   const coach = $('#lessonCoach');
   coach.hidden = false;
   $('#lessonTitle').textContent = activeLesson.title;
+  renderLessonTarget();
   $('#lessonObjective').textContent = activeLesson.steps[Math.min(activeLesson.steps.length - 1, trainingSession.status === 'running' ? 0 : activeLesson.steps.length - 1)];
   $('#lessonExplanation').textContent = activeLesson.explanation;
   $('#lessonExperiment').textContent = activeLesson.experiment;

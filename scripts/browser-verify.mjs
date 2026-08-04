@@ -137,6 +137,17 @@ assert(retry.failure.role === 'alert' && retry.failure.progress.includes('time-l
 assert(retry.failure.dimensions.length === 3 && retry.failure.dimensions[0].startsWith('Control:') && retry.failure.dimensions[1].startsWith('Smoothness:') && retry.failure.dimensions[2].startsWith('Accuracy:'), 'lesson result should keep Control, Smoothness, and Accuracy separate');
 assert(retry.attempts === 2 && retry.learnVisible, 'Retry should persist another attempt and Exit should return to Learn');
 
+const targetGuidance = await evaluate(`(() => {
+  window.__dockwise.startLesson('controlled-pivot');
+  return {
+    title: document.querySelector('#lessonTitle').textContent.trim(),
+    target: document.querySelector('#lessonTarget')?.textContent.trim() || ''
+  };
+})()`);
+assert(targetGuidance.title === 'Controlled pivot', 'controlled-pivot lesson should be selectable');
+assert(targetGuidance.target.includes('090°') && targetGuidance.target.includes('±15°'), 'controlled-pivot should show its target heading and tolerance');
+await evaluate(`document.querySelector('#exitLesson').click()`);
+
 const lineAssist = await evaluate(`(() => {
   window.__dockwise.startLesson('bow-to-control');
   const prescribed = window.__dockwise.getLines();
