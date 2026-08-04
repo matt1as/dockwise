@@ -183,6 +183,21 @@ assert(lineAssist.restored.length === 2 && lineAssist.restored.join(',') === lin
 assert(lineAssist.elapsed === 0 && lineAssist.status === 'running', 'line setup aid should reset the lesson attempt without advancing it');
 await evaluate(`document.querySelector('#exitLesson').click()`);
 
+const rudderDirection = await evaluate(`(() => {
+  window.__dockwise.startLesson('rudder-flow');
+  document.querySelector('[data-lesson-engine="1"]').click();
+  document.querySelector('[data-lesson-rudder="-35"]').click();
+  for (let index = 0; index < 20; index += 1) window.__dockwise.step(0.05);
+  const portHeading = window.__dockwise.getState().heading;
+  window.__dockwise.startLesson('rudder-flow');
+  document.querySelector('[data-lesson-engine="1"]').click();
+  document.querySelector('[data-lesson-rudder="35"]').click();
+  for (let index = 0; index < 20; index += 1) window.__dockwise.step(0.05);
+  return { portHeading, starboardHeading: window.__dockwise.getState().heading };
+})()`);
+assert(rudderDirection.portHeading < 0 && rudderDirection.starboardHeading > 0, 'Port and Starboard rudder controls should turn in their named directions');
+await evaluate(`document.querySelector('#exitLesson').click()`);
+
 await evaluate(`document.querySelector('#skipToSandbox').click()`);
 await sleep(300);
 const sandboxInitial = await evaluate(`({

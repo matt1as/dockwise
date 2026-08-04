@@ -159,7 +159,7 @@ export function computeForces(state, controls = {}) {
   const rudderFlow = waterVelocityLocal.x + engine * throttle * 0.8;
   if (Math.abs(rudderDeg) > EPSILON && Math.abs(rudderFlow) > 0.04) {
     const flow = rudderFlow;
-    const rudderForce = Math.sign(flow || 1) * Math.abs(flow) * Math.abs(flow) * Math.sin(rudderDeg * DEG) * 1200;
+    const rudderForce = -Math.sign(flow || 1) * Math.abs(flow) * Math.abs(flow) * Math.sin(rudderDeg * DEG) * 1200;
     apply('Rudder', { x: -4.15, y: 0 }, { x: 0, y: rudderForce });
   }
 

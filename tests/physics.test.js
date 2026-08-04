@@ -136,8 +136,10 @@ test('rudder creates opposite lateral force for opposite helm angles when moving
   const base = { lines: [], engine: 0, throttle: 0, propWalk: 1, wind: { speed: 0, directionDeg: 0 }, current: { speed: 0, directionDeg: 0 } };
   const left = computeForces(portHelm, { ...base, rudderDeg: -25 });
   const right = computeForces(starboardHelm, { ...base, rudderDeg: 25 });
-  assert.ok(left.force.y < 0);
-  assert.ok(right.force.y > 0);
+  assert.ok(left.force.y > 0, 'port helm should generate force toward local port');
+  assert.ok(right.force.y < 0, 'starboard helm should generate force toward local starboard');
+  assert.ok(left.torque < 0, 'port helm should turn the bow toward port');
+  assert.ok(right.torque > 0, 'starboard helm should turn the bow toward starboard');
 });
 
 test('rudder receives prop wash at rest when the engine is ahead', () => {
