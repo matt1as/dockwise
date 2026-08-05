@@ -57,6 +57,19 @@ Choose **Sandbox** for free-form practice:
 
 The boat can also be dragged to a new starting position while paused.
 
+## Private beginner test
+
+This round uses the LAN app only; do not send testers to the existing GitHub Pages URL. The test kit is in `docs/private-test/`:
+
+- `tester-handout.md` — 20–25 minute participant instructions
+- `facilitator-checklist.md` — setup, observation, and release checklist
+- `feedback-form.md` — anonymized structured feedback
+- `observation-template.md` — one record per tester
+- `private-validation-protocol.md` — internal two-week protocol and acceptance criteria
+- `recruitment-message.md` — draft message; do not send without approval
+
+Use `npm run start:lan` and give private testers the current Mac LAN URL. No account, paid service, or public launch is required.
+
 ## Test
 
 ```bash
