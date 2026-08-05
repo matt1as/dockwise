@@ -37,6 +37,12 @@ test('every lesson has a valid deterministic setup and coaching content', () => 
   }
 });
 
+test('aft-spring departure has a forgiving target for a safe bow-out release', () => {
+  const lesson = getLesson('aft-spring-departure');
+  assert.ok(lesson.success.target.radius >= 2, 'departure target should allow a safe release arc');
+  assert.match(`${lesson.startHere} ${lesson.briefing} ${lesson.explanation}`, /Astern/);
+});
+
 test('validation rejects invalid berth modes, values, cleats, and criteria', () => {
   const valid = structuredClone(LESSONS[0]);
   assert.throws(() => validateLesson({ ...valid, setup: { ...valid.setup, berthMode: 'flying' } }), /berth mode/);
