@@ -160,15 +160,15 @@ const springGuidance = await evaluate(`(() => {
   window.__dockwise.startLesson('aft-spring-departure');
   return { lines: window.__dockwise.getLines().length, dockCleat: window.__dockwise.getLines()[0]?.dockCleat, visible: !document.querySelector('#connectLessonLines').hidden };
 })()`);
-assert(springGuidance.lines === 1 && springGuidance.dockCleat === 'D1' && springGuidance.visible, 'aft-spring tutorial should use an aft dock cleat and expose its connection action');
+assert(springGuidance.lines === 1 && springGuidance.dockCleat === 'D4' && springGuidance.visible, 'aft-spring tutorial should use a forward dock cleat and expose its connection action');
 const springMotion = await evaluate(`(() => {
   document.querySelector('#connectLessonLines').click();
-  document.querySelector('[data-lesson-engine="1"]').click();
+  document.querySelector('[data-lesson-engine="-1"]').click();
   for (let index = 0; index < 180; index += 1) window.__dockwise.step(1 / 60);
   const state = window.__dockwise.getState();
   return { collision: state.collision, heading: state.heading, tension: state.lineResults?.[0]?.tension || 0 };
 })()`);
-assert(!springMotion.collision && springMotion.heading > 0.03 && springMotion.tension > 0, 'gentle Ahead on the aft spring should open the bow without hitting the dock');
+assert(!springMotion.collision && springMotion.heading > 0.03 && springMotion.tension > 0, 'gentle Astern on the stern-side spring should open the bow without hitting the dock');
 await evaluate(`document.querySelector('#exitLesson').click()`);
 
 const lineAssist = await evaluate(`(() => {

@@ -167,7 +167,7 @@ function applyPreset(name) {
   resetBoat();
   lineCounter = 0;
   if (name === 'aft-spring') {
-    lines = [makeLine('aft', 'D1', 2)];
+    lines = [makeLine('aft', 'D4', 2)];
     setEngine(0);
   } else if (name === 'mid-spring') {
     lines = [makeLine('middle', 'D4', 2)];

@@ -34,12 +34,12 @@ const lessonExplanations = {
     experiment: 'Hold a small helm angle, then center it before the target heading. Compare that with holding full helm; the second attempt shows why counter-steering and early neutral matter.',
   },
   'aft-spring-departure': {
-    explanation: 'An aft spring is attached near the stern but runs forward to the dock. Ahead thrust pushes against that restrained point, so the stern stays near the dock while the bow swings away. Once the bow is clear, releasing the line removes the pivot and lets the boat leave normally.',
-    experiment: 'Connect the lesson lines, use gentle Ahead, and watch the bow open before releasing. Then try the same thrust without the spring to see that the turning geometry has changed.',
+    explanation: 'This stern-side spring runs forward to the dock. Astern thrust moves the stern away from the forward dock cleat until the spring takes the load; the stern is restrained and the bow swings away from the dock. Once the bow is clear, release the line and leave normally.',
+    experiment: 'Connect the tutorial line, use gentle Astern, and watch the bow open before releasing. Then repeat without the spring to see how the turning geometry changes.',
   },
   'offshore-wind-departure': {
-    explanation: 'The wind is already pushing the boat away from the dock, so it can help the spring departure. The spring gives the thrust a controlled pivot while the wind adds sideways separation. Too much engine or leaving the line too late can still create unnecessary load.',
-    experiment: 'Use the wind as assistance: add only enough Ahead to open the bow, monitor line load, and release while the boat is still slow.',
+    explanation: 'The wind is already pushing the boat away from the dock, so it can help the spring departure. The stern-side spring and a short Astern pulse create a controlled pivot while the wind adds separation. Too much engine or leaving the line too late can still create unnecessary load.',
+    experiment: 'Use the wind as assistance: add only enough Astern to open the bow, monitor line load, and release while the boat is still slow.',
   },
   'arrive-alongside': {
     explanation: 'An alongside arrival is mainly a momentum-management exercise. Thrust gets you close, but Neutral gives the water and hull resistance time to remove speed. A parallel final heading leaves fewer sideways corrections and keeps the boat clear of the dock.',
@@ -77,11 +77,11 @@ const lessonInstructions = {
     done: 'You are done when the heading reads about 090°, the boat is within 1.5 m of the target, and speed is low.',
   },
   'aft-spring-departure': {
-    start: 'Click Connect tutorial lines first. The aft spring is already attached; select Ahead at low throttle.',
+    start: 'Click Connect tutorial lines first. The stern-side spring is attached; select Astern at low throttle.',
     done: 'You are done when the bow has opened, the line is not overloaded, and the boat is moving away slowly.',
   },
   'offshore-wind-departure': {
-    start: 'Click Connect tutorial lines first. Select Ahead gently and let the offshore wind help create separation.',
+    start: 'Click Connect tutorial lines first. Select Astern gently and let the offshore wind help create separation.',
     done: 'You are done when the boat is clear of the dock, the spring is not overloaded, and speed remains low.',
   },
   'arrive-alongside': {
@@ -121,8 +121,8 @@ const catalog = [
   lesson('rudder-flow', 2, 'Rudder needs flow', 'Feel how rudder authority grows with headway and propeller wash.', setups.rudder, { x: -1.5, y: 3.4, radius: 1, heading: 0.2, headingToleranceDeg: 18 }, ['Try helm while neutral.', 'Use gentle Ahead and repeat.', 'Center the rudder as the bow turns.'], ['A rudder needs water flowing across it.']),
   lesson('reverse-prop-walk', 3, 'Reverse prop walk', 'Use a short astern pulse and observe the configured stern tendency.', setups.reverse, { x: 0.5, y: 2.5, radius: 1.2, heading: 0, headingToleranceDeg: 20 }, ['Select Astern.', 'Watch the sideways movement.', 'Return to Neutral and settle.'], ['A short pulse shows prop walk without building excess speed.']),
   lesson('controlled-pivot', 4, 'Controlled pivot', 'Rotate toward the target heading while remaining inside the safe area.', setups.pivot, { x: 0, y: 3, radius: 1.5, heading: Math.PI / 2, headingToleranceDeg: 15 }, ['Use low power and helm.', 'Counter the turn early.', 'Finish nearly stopped.'], ['Alternate short inputs instead of holding full power.']),
-  lesson('aft-spring-departure', 5, 'Leave on aft spring', 'Use one aft spring to move the bow clear before releasing into open water.', setups.spring, { x: 2, y: 1.5, radius: 1.4, heading: 0.2, headingToleranceDeg: 22 }, ['Apply gentle Ahead against the spring.', 'Wait for the bow to open.', 'Release and leave slowly.'], ['The spring restrains the stern while thrust creates a turning moment.']),
-  lesson('offshore-wind-departure', 6, 'Leave in offshore wind', 'Repeat the spring departure while an offshore wind moves the boat away.', setups.wind, { x: 2, y: 2.2, radius: 1.5, heading: 0.15, headingToleranceDeg: 24 }, ['Use the aft spring briefly.', 'Allow for wind drift.', 'Release before line load rises.'], ['The wind is assistance, not a reason to add speed.']),
+  lesson('aft-spring-departure', 5, 'Leave on aft spring', 'Use one stern-side spring and gentle Astern to move the bow clear before releasing into open water.', setups.spring, { x: 2, y: 1.5, radius: 1.4, heading: 0.2, headingToleranceDeg: 22 }, ['Apply gentle Astern against the spring.', 'Wait for the bow to open.', 'Release and leave slowly.'], ['The spring restrains the stern while Astern creates a turning moment.']),
+  lesson('offshore-wind-departure', 6, 'Leave in offshore wind', 'Repeat the spring departure with gentle Astern while an offshore wind moves the boat away.', setups.wind, { x: 2, y: 2.2, radius: 1.5, heading: 0.15, headingToleranceDeg: 24 }, ['Use the stern-side spring briefly.', 'Allow for wind drift.', 'Release before line load rises.'], ['The wind is assistance, not a reason to add speed.']),
   lesson('arrive-alongside', 7, 'Arrive alongside', 'Approach the target pose slowly and stop clear of dock contact.', setups.arrive, { x: 0, y: 0, radius: 1, heading: 0, headingToleranceDeg: 12 }, ['Approach below walking pace.', 'Select Neutral early.', 'Settle parallel to the dock.'], ['Accuracy comes from low momentum and early neutral.']),
   lesson('bow-to-control', 8, 'Bow-to control', 'Approach bow-to and stabilize with balanced forward lines.', setups.bow, { x: 0, y: 2, radius: 0.9, heading: -Math.PI / 2, headingToleranceDeg: 10 }, ['Approach bow first.', 'Use paired forward lines.', 'Settle with balanced load.'], ['Compare both line loads before adding power.']),
   lesson('stern-to-control', 9, 'Stern-to control', 'Reverse stern-to while controlling prop walk and paired aft lines.', setups.stern, { x: 0, y: 2, radius: 0.9, heading: Math.PI / 2, headingToleranceDeg: 10 }, ['Reverse in short pulses.', 'Counter sideways tendency early.', 'Stabilize on both aft lines.'], ['Pause in Neutral to see what momentum is doing.']),
