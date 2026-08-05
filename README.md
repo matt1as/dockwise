@@ -15,6 +15,14 @@ npm start
 
 Open [http://127.0.0.1:4173](http://127.0.0.1:4173).
 
+For testing from a phone on the same network, use the LAN listener:
+
+```bash
+npm run start:lan
+```
+
+Then open `http://192.168.1.223:4173` on the phone. The LAN address is machine-specific and may change when the Mac reconnects to the network. If it changes, update `.env.local` and the LAN address in `supabase/config.toml`, then restart Supabase and Vite.
+
 ## Local Supabase backend
 
 The browser app can run entirely offline/local, or use the local Supabase instance for optional accounts and progress sync. OrbStack must be running with its Docker context selected.
