@@ -13,7 +13,7 @@ const setups = {
   arrive: { berthMode: 'alongside', preset: 'clear', state: { x: -6, y: 2.5, heading: 0 }, controls: { engine: 0, throttle: 0.3, rudderDeg: 0, propWalk: 0.65 }, wind: { speed: 0, directionDeg: 270 }, current: { speed: 0, directionDeg: 0 } },
   bow: { berthMode: 'bow-to', preset: 'clear', state: { x: 0, y: 3, heading: -Math.PI / 2 }, controls: { engine: 0, throttle: 0.3, rudderDeg: 0, propWalk: 0.65 }, wind: { speed: 0, directionDeg: 0 }, current: { speed: 0, directionDeg: 0 }, lines: [{ boatCleat: 'forward', boatSide: 'port', dockCleat: 'D4', slackPercent: 4 }, { boatCleat: 'forward', boatSide: 'starboard', dockCleat: 'D3', slackPercent: 4 }] },
   stern: { berthMode: 'stern-to', preset: 'clear', state: { x: 0, y: 3, heading: Math.PI / 2 }, controls: { engine: 0, throttle: 0.3, rudderDeg: 0, propWalk: 0.65 }, wind: { speed: 0, directionDeg: 0 }, current: { speed: 0, directionDeg: 0 }, lines: [{ boatCleat: 'aft', boatSide: 'port', dockCleat: 'D4', slackPercent: 4 }, { boatCleat: 'aft', boatSide: 'starboard', dockCleat: 'D3', slackPercent: 4 }] },
-  mixed: { berthMode: 'alongside', preset: 'clear', state: { x: -5, y: 3.5, heading: 0.12 }, controls: { engine: 0, throttle: 0.35, rudderDeg: 0, propWalk: 0.65 }, wind: { speed: 2.5, directionDeg: 270 }, current: { speed: 0.35, directionDeg: 0 } },
+  mixed: { berthMode: 'alongside', preset: 'clear', state: { x: -5, y: 3.5, heading: 0 }, controls: { engine: 0, throttle: 0.35, rudderDeg: 0, propWalk: 0.65 }, wind: { speed: 2.5, directionDeg: 270 }, current: { speed: 0.35, directionDeg: 0 } },
 };
 
 const lessonExplanations = {

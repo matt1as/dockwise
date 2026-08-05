@@ -57,6 +57,7 @@ test('mixed-conditions challenge keeps environmental force along the dock face',
   assert.equal(lesson.setup.wind.directionDeg, 270);
   assert.equal(lesson.setup.current.speed, 0.35);
   assert.equal(lesson.setup.current.directionDeg, 0);
+  assert.equal(lesson.setup.state.heading, 0);
   assert.match(lesson.explanation, /along the dock face/);
 });
 
