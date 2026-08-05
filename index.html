@@ -30,10 +30,18 @@
         <button id="startFirstLesson" class="primary-button" type="button">Start first lesson</button>
         <button id="skipToSandbox" class="secondary-button" type="button">Skip to Sandbox</button>
       </div>
-      <section class="account-panel" aria-labelledby="accountTitle">
-        <div><strong id="accountTitle">Optional cloud progress</strong><p id="backendStatus">Local-only mode. Your progress stays in this browser.</p></div>
-        <div class="account-fields"><label>Email<input id="accountEmail" type="email" autocomplete="email" placeholder="you@example.com"></label><label>Password<input id="accountPassword" type="password" autocomplete="new-password" placeholder="At least 6 characters"></label></div>
-        <div class="account-actions"><button id="accountSignUp" class="secondary-button" type="button">Create account</button><button id="accountSignIn" class="secondary-button" type="button">Sign in</button><button id="accountSignOut" class="secondary-button" type="button" hidden>Sign out</button></div>
+      <section class="account-panel logged-out" id="accountPanel" aria-labelledby="accountTitle">
+        <div class="account-state account-state-logged-out">
+          <div class="account-heading"><span class="account-icon">☁</span><div><strong id="accountTitle">Save your progress across devices</strong><p id="backendStatusLoggedOut">Local-only mode. Your progress stays in this browser.</p></div></div>
+          <ul class="account-benefits"><li>Keep lesson completions and attempts backed up</li><li>Continue on another browser later</li><li>Offline play still works without an account</li></ul>
+          <div class="account-fields"><label>Email<input id="accountEmail" type="email" autocomplete="email" placeholder="you@example.com"></label><label>Password<input id="accountPassword" type="password" autocomplete="new-password" placeholder="At least 6 characters"></label></div>
+          <div class="account-actions"><button id="accountSignUp" class="primary-button" type="button">Create free account</button><button id="accountSignIn" class="secondary-button" type="button">Sign in</button></div>
+        </div>
+        <div class="account-state account-state-logged-in" hidden>
+          <div class="account-heading"><span class="account-icon connected">✓</span><div><strong>Cloud progress connected</strong><p id="accountIdentity">Signed in</p></div><span class="account-badge">SYNCED</span></div>
+          <p id="backendStatusLoggedIn">Your lesson progress is backed up to Supabase. You can still practise offline; changes sync when the connection returns.</p>
+          <div class="account-actions"><button id="accountSyncNow" class="secondary-button" type="button">Sync now</button><button id="accountSignOut" class="secondary-button" type="button">Sign out</button></div>
+        </div>
       </section>
     </div>
     <div id="lessonList" class="lesson-list" aria-label="Lessons"></div>

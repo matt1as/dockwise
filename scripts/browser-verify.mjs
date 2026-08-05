@@ -57,6 +57,11 @@ const initial = await evaluate(`({
   learnVisible: !document.querySelector('#learnScreen')?.hidden,
   sandboxHidden: document.querySelector('#sandboxScreen').hidden,
   lessonCount: document.querySelectorAll('[data-lesson-id]').length,
+  account: {
+    loggedOutVisible: !document.querySelector('.account-state-logged-out').hidden,
+    loggedInHidden: document.querySelector('.account-state-logged-in').hidden,
+    uniqueStatusElements: document.querySelectorAll('#backendStatusLoggedOut, #backendStatusLoggedIn').length
+  },
   storage: window.__dockwise.getStorageState()
 })`);
 assert(initial.ready === 'complete', 'page must finish loading');
@@ -66,6 +71,7 @@ assert(initial.slogan === 'Trust the process', 'Dockwise slogan should match the
 assert(initial.modes.join(',') === 'Learn,Sandbox', 'Learn and Sandbox navigation should be visible');
 assert(initial.learnVisible && initial.sandboxHidden, 'Learn should be the first-run default');
 assert(initial.lessonCount === 10, 'Learn should list exactly ten lessons');
+assert(initial.account.loggedOutVisible && initial.account.loggedInHidden && initial.account.uniqueStatusElements === 2, 'logged-out account state should be explicit and have unique status elements');
 assert(!initial.storage.onboardingComplete && initial.storage.lastMode === 'learn', 'first-run store should preserve Learn onboarding state');
 await fs.mkdir('test-artifacts', { recursive: true });
 const learnShot = await send('Page.captureScreenshot', { format: 'png', captureBeyondViewport: false });
@@ -356,15 +362,11 @@ await fs.writeFile('test-artifacts/dockwise-mobile.png', Buffer.from(mobileShot.
 await evaluate(`document.querySelector('.prop-walk-direction').scrollIntoView({ block: 'center' })`);
 await sleep(200);
 const mobileControls = await evaluate(`(() => {
-  const buttons = [...document.querySelectorAll('[data-prop-walk-direction]')].map(button => {
-    const rect = button.getBoundingClientRect();
-    return { width: rect.width, height: rect.height, label: button.textContent.trim() };
-  });
+  const direction = document.querySelector('.prop-walk-direction').getBoundingClientRect();
   const slider = document.querySelector('#propWalk').getBoundingClientRect();
-  return { buttons, sliderVisible: slider.top >= 0 && slider.bottom <= innerHeight };
+  return { directionVisible: direction.height > 0 && direction.width > 0, sliderVisible: slider.height > 0 && slider.width > 0 };
 })()`);
-assert(mobileControls.buttons.every(button => button.height >= 42 && button.width >= 80), 'mobile prop-walk choices should be touch-friendly');
-assert(mobileControls.sliderVisible, 'mobile prop-walk strength should remain visible with its direction choices');
+assert(!mobileControls.directionVisible && !mobileControls.sliderVisible, 'mobile should hide advanced prop-walk controls');
 const mobileControlsShot = await send('Page.captureScreenshot', { format: 'png', captureBeyondViewport: false });
 await fs.writeFile('test-artifacts/dockwise-mobile-controls.png', Buffer.from(mobileControlsShot.data, 'base64'));
 

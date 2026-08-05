@@ -83,20 +83,31 @@ function distance(a, b) { return Math.hypot(a.x - b.x, a.y - b.y); }
 function dockCleat(id) { return dockCleats.find((cleat) => cleat.id === id); }
 
 function setBackendStatus(message) {
-  const status = $('#backendStatus');
-  if (status) status.textContent = message;
+  const loggedOut = $('#backendStatusLoggedOut');
+  const loggedIn = $('#backendStatusLoggedIn');
+  if (loggedOut) loggedOut.textContent = message;
+  if (loggedIn) loggedIn.textContent = message;
 }
 
 function renderBackendAccount() {
   const configured = backend.configured;
-  $('#accountEmail').disabled = Boolean(backendUser);
-  $('#accountPassword').disabled = Boolean(backendUser);
-  $('#accountSignUp').hidden = !configured || Boolean(backendUser);
-  $('#accountSignIn').hidden = !configured || Boolean(backendUser);
-  $('#accountSignOut').hidden = !backendUser;
+  const panel = $('#accountPanel');
+  const loggedOut = $('.account-state-logged-out');
+  const loggedIn = $('.account-state-logged-in');
+  const isLoggedIn = Boolean(backendUser);
+  panel.classList.toggle('logged-in', isLoggedIn);
+  panel.classList.toggle('logged-out', !isLoggedIn);
+  loggedOut.hidden = isLoggedIn;
+  loggedIn.hidden = !isLoggedIn;
+  $('#accountEmail').disabled = isLoggedIn;
+  $('#accountPassword').disabled = isLoggedIn;
+  $('#accountSignUp').hidden = !configured || isLoggedIn;
+  $('#accountSignIn').hidden = !configured || isLoggedIn;
+  $('#accountSyncNow').disabled = !configured || !isLoggedIn;
+  $('#accountIdentity').textContent = backendUser?.email || 'Signed in';
   if (!configured) setBackendStatus('Local-only mode. Your progress stays in this browser.');
-  else if (backendUser) setBackendStatus(`Signed in as ${backendUser.email || 'Dockwise user'}. Cloud progress is enabled.`);
-  else setBackendStatus('Optional cloud progress. Create an account or sign in; local play works without it.');
+  else if (isLoggedIn) setBackendStatus('Your lesson progress is backed up to Supabase. You can still practise offline; changes sync when the connection returns.');
+  else setBackendStatus('Not signed in. Progress stays on this device until you create an account or sign in.');
 }
 
 async function syncCloudProgress() {
@@ -901,6 +912,7 @@ $('#skipToSandbox').addEventListener('click', () => { store.completeOnboarding()
 $('#startFirstLesson').addEventListener('click', () => { store.completeOnboarding(); startLesson(LESSONS[0].id); });
 $('#accountSignUp').addEventListener('click', () => { void accountAction('signup'); });
 $('#accountSignIn').addEventListener('click', () => { void accountAction('signin'); });
+$('#accountSyncNow').addEventListener('click', () => { void syncCloudProgress(); });
 $('#accountSignOut').addEventListener('click', async () => { await backend.signOut(); backendUser = null; renderBackendAccount(); });
 $('#connectLessonLines').addEventListener('click', resetLessonSetup);
 $('#retryLesson').addEventListener('click', () => { if (activeLesson) startLesson(activeLesson.id); });
