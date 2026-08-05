@@ -13,7 +13,7 @@ const setups = {
   arrive: { berthMode: 'alongside', preset: 'clear', state: { x: -6, y: 2.5, heading: 0 }, controls: { engine: 0, throttle: 0.3, rudderDeg: 0, propWalk: 0.65 }, wind: { speed: 0, directionDeg: 270 }, current: { speed: 0, directionDeg: 0 } },
   bow: { berthMode: 'bow-to', preset: 'clear', state: { x: 0, y: 3, heading: -Math.PI / 2 }, controls: { engine: 0, throttle: 0.3, rudderDeg: 0, propWalk: 0.65 }, wind: { speed: 0, directionDeg: 0 }, current: { speed: 0, directionDeg: 0 }, lines: [{ boatCleat: 'forward', boatSide: 'port', dockCleat: 'D4', slackPercent: 4 }, { boatCleat: 'forward', boatSide: 'starboard', dockCleat: 'D3', slackPercent: 4 }] },
   stern: { berthMode: 'stern-to', preset: 'clear', state: { x: 0, y: 3, heading: Math.PI / 2 }, controls: { engine: 0, throttle: 0.3, rudderDeg: 0, propWalk: 0.65 }, wind: { speed: 0, directionDeg: 0 }, current: { speed: 0, directionDeg: 0 }, lines: [{ boatCleat: 'aft', boatSide: 'port', dockCleat: 'D4', slackPercent: 4 }, { boatCleat: 'aft', boatSide: 'starboard', dockCleat: 'D3', slackPercent: 4 }] },
-  mixed: { berthMode: 'alongside', preset: 'clear', state: { x: -5, y: 3.5, heading: 0.12 }, controls: { engine: 0, throttle: 0.35, rudderDeg: 0, propWalk: 0.65 }, wind: { speed: 2.5, directionDeg: 235 }, current: { speed: 0.35, directionDeg: 320 } },
+  mixed: { berthMode: 'alongside', preset: 'clear', state: { x: -5, y: 3.5, heading: 0.12 }, controls: { engine: 0, throttle: 0.35, rudderDeg: 0, propWalk: 0.65 }, wind: { speed: 2.5, directionDeg: 270 }, current: { speed: 0.35, directionDeg: 0 } },
 };
 
 const lessonExplanations = {
@@ -54,8 +54,8 @@ const lessonExplanations = {
     experiment: 'Connect both aft lines, pulse Astern, pause in Neutral, and watch the line loads and sideways motion before choosing the next correction.',
   },
   'mixed-conditions': {
-    explanation: 'Wind and current add forces even when the engine is Neutral. This challenge uses a moderate 2.5 m/s wind, so the environment changes the approach without overpowering it. Their direction matters as much as their strength, and the force arrows show the qualitative balance. Plan the approach around the environmental drift, then use small engine and rudder inputs instead of trying to overpower everything.',
-    experiment: 'Pause with Analysis on and identify where wind and current point. Make a low-speed approach, then use Neutral early and check whether the remaining drift is carrying you toward or away from the target.',
+    explanation: 'Wind and current add forces even when the engine is Neutral. This challenge uses a moderate 2.5 m/s wind and a light opposing current along the dock face, so the environment changes the approach without driving the boat into the dock. Their direction matters as much as their strength, and the force arrows show the qualitative balance. Plan the approach around the environmental drift, then use small engine inputs instead of trying to overpower everything.',
+    experiment: 'Pause with Analysis on and identify the opposing wind/current arrows. Make a low-speed approach, then use short ahead or astern pulses to manage along-dock drift while keeping the bow parallel.',
   },
 };
 

@@ -51,11 +51,13 @@ test('arrive alongside is a calm baseline before environmental-force lessons', (
   assert.match(lesson.doneWhen, /moving very slowly/);
 });
 
-test('mixed-conditions challenge keeps environmental force challenging but manageable', () => {
+test('mixed-conditions challenge keeps environmental force along the dock face', () => {
   const lesson = getLesson('mixed-conditions');
   assert.equal(lesson.setup.wind.speed, 2.5);
+  assert.equal(lesson.setup.wind.directionDeg, 270);
   assert.equal(lesson.setup.current.speed, 0.35);
-  assert.match(lesson.explanation, /moderate 2\.5 m\/s wind/);
+  assert.equal(lesson.setup.current.directionDeg, 0);
+  assert.match(lesson.explanation, /along the dock face/);
 });
 
 test('validation rejects invalid berth modes, values, cleats, and criteria', () => {
