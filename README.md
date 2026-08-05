@@ -66,7 +66,9 @@ This round uses the LAN app only; do not send testers to the existing GitHub Pag
 - `feedback-form.md` — anonymized structured feedback
 - `observation-template.md` — one record per tester
 - `private-validation-protocol.md` — internal two-week protocol and acceptance criteria
-- `recruitment-message.md` — draft message; do not send without approval
+- `recruitment-brief.md` — recipient criteria, consent boundaries, and evidence thresholds
+- `feedback-collection.md` — privacy-safe, no-paid-tool collection workflow
+- `recruitment-message.md` — Swedish draft message; do not send without approval
 
 Use `npm run start:lan` and give private testers the current Mac LAN URL. No account, paid service, or public launch is required.
 
