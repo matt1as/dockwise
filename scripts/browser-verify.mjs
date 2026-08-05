@@ -98,6 +98,7 @@ const lessonStart = await evaluate(`(() => {
     explanation: document.querySelector('#lessonExplanation').textContent.trim(),
     experiment: document.querySelector('#lessonExperiment').textContent.trim(),
     dock: document.querySelector('#lessonDock').textContent.trim(),
+    targetOverlay: document.querySelector('#simCanvas').dataset.targetVisible,
     start: document.querySelector('#lessonStart').textContent.trim(),
     done: document.querySelector('#lessonDone').textContent.trim(),
     steps: document.querySelectorAll('#lessonSteps li').length,
@@ -113,6 +114,7 @@ assert(!lessonStart.before.running && lessonStart.after.elapsed === 0.05, 'fixed
 assert(lessonStart.coachVisible && lessonStart.helmVisible, 'active lesson should expose coach and touch helm');
 assert(lessonStart.explanation.length >= 80 && lessonStart.experiment.length >= 40, 'active lesson should explain the cause and suggest an experiment');
 assert(lessonStart.dock.includes('dock') && lessonStart.dock.includes('fixed'), 'active lesson should explain the dock and its role');
+assert(lessonStart.targetOverlay === 'true', 'active lesson should render its target area on the canvas');
 assert(lessonStart.start.length >= 30 && lessonStart.done.length >= 40 && lessonStart.steps === 3, 'active lesson should show start, ordered steps, and completion guidance');
 assert(lessonStart.lineAssistHidden, 'line setup aid should stay hidden when the lesson has no prescribed lines');
 assert(lessonStart.objective && lessonStart.hint && lessonStart.progress, 'lesson objective, hint, and progress should be accessible');
@@ -156,9 +158,17 @@ await evaluate(`document.querySelector('#exitLesson').click()`);
 
 const springGuidance = await evaluate(`(() => {
   window.__dockwise.startLesson('aft-spring-departure');
-  return { lines: window.__dockwise.getLines().length, visible: !document.querySelector('#connectLessonLines').hidden };
+  return { lines: window.__dockwise.getLines().length, dockCleat: window.__dockwise.getLines()[0]?.dockCleat, visible: !document.querySelector('#connectLessonLines').hidden };
 })()`);
-assert(springGuidance.lines === 1 && springGuidance.visible, 'aft-spring tutorial should expose its prescribed line and connection action');
+assert(springGuidance.lines === 1 && springGuidance.dockCleat === 'D1' && springGuidance.visible, 'aft-spring tutorial should use an aft dock cleat and expose its connection action');
+const springMotion = await evaluate(`(() => {
+  document.querySelector('#connectLessonLines').click();
+  document.querySelector('[data-lesson-engine="1"]').click();
+  for (let index = 0; index < 180; index += 1) window.__dockwise.step(1 / 60);
+  const state = window.__dockwise.getState();
+  return { collision: state.collision, heading: state.heading, tension: state.lineResults?.[0]?.tension || 0 };
+})()`);
+assert(!springMotion.collision && springMotion.heading > 0.03 && springMotion.tension > 0, 'gentle Ahead on the aft spring should open the bow without hitting the dock');
 await evaluate(`document.querySelector('#exitLesson').click()`);
 
 const lineAssist = await evaluate(`(() => {
@@ -394,6 +404,10 @@ assert(portraitLesson.coachBottom <= portraitLesson.canvasTop + 1, 'tutorial ins
 assert(portraitLesson.targets.length === 6 && portraitLesson.targets.every(target => target.width >= 44 && target.height >= 44), 'portrait lesson helm targets should be at least 44px');
 const portraitLessonShot = await send('Page.captureScreenshot', { format: 'png', captureBeyondViewport: false });
 await fs.writeFile('test-artifacts/dockwise-mobile-lesson.png', Buffer.from(portraitLessonShot.data, 'base64'));
+await evaluate(`document.querySelector('.canvas-wrap').scrollIntoView({ block: 'center' })`);
+await sleep(150);
+const targetLessonShot = await send('Page.captureScreenshot', { format: 'png', captureBeyondViewport: false });
+await fs.writeFile('test-artifacts/dockwise-mobile-lesson-target.png', Buffer.from(targetLessonShot.data, 'base64'));
 
 await send('Emulation.setDeviceMetricsOverride', { width: 844, height: 390, deviceScaleFactor: 2, mobile: true });
 await sleep(250);

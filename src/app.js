@@ -167,7 +167,7 @@ function applyPreset(name) {
   resetBoat();
   lineCounter = 0;
   if (name === 'aft-spring') {
-    lines = [makeLine('aft', 'D4', 2)];
+    lines = [makeLine('aft', 'D1', 2)];
     setEngine(0);
   } else if (name === 'mid-spring') {
     lines = [makeLine('middle', 'D4', 2)];
@@ -358,6 +358,7 @@ function renderLessonCoach() {
   if (!activeLesson || !trainingSession) return;
   const coach = $('#lessonCoach');
   coach.hidden = false;
+  canvas.dataset.targetVisible = String(Boolean(activeLesson.success.target && Number.isFinite(activeLesson.success.target.radius)));
   $('#lessonTitle').textContent = activeLesson.title;
   renderLessonTarget();
   const tutorialUsesLines = Boolean(activeLesson.setup.lines?.length || activeLesson.setup.preset !== 'clear');
@@ -625,6 +626,22 @@ function drawBoat() {
   }
 }
 
+function drawLessonTarget() {
+  const target = activeLesson?.success?.target;
+  canvas.dataset.targetVisible = String(Boolean(target && Number.isFinite(target.radius)));
+  if (!target || !Number.isFinite(target.radius)) return;
+  const center = toScreen(target);
+  const radius = Math.max(12, target.radius * view.scale);
+  const heading = Number(target.heading || 0);
+  const direction = toScreen({ x: target.x + Math.cos(heading) * target.radius, y: target.y + Math.sin(heading) * target.radius });
+  ctx.save();
+  ctx.strokeStyle = '#ffbb55'; ctx.fillStyle = 'rgba(255,187,85,.08)'; ctx.lineWidth = 2;
+  ctx.setLineDash([7, 5]); ctx.beginPath(); ctx.arc(center.x, center.y, radius, 0, Math.PI * 2); ctx.fill(); ctx.stroke(); ctx.setLineDash([]);
+  ctx.beginPath(); ctx.moveTo(center.x, center.y); ctx.lineTo(direction.x, direction.y); ctx.stroke();
+  ctx.fillStyle = '#ffbb55'; ctx.font = '600 9px DM Mono, monospace'; ctx.textAlign = 'center'; ctx.fillText('TARGET', center.x, center.y - radius - 7);
+  ctx.restore();
+}
+
 function drawLines() {
   const resultMap = new Map((state.lineResults || []).map((result) => [result.id, result]));
   for (const line of lines) {
@@ -668,7 +685,7 @@ function drawForces() {
 function render() {
   ctx.setTransform(view.dpr, 0, 0, view.dpr, 0, 0);
   ctx.clearRect(0, 0, view.width, view.height);
-  drawWater(); drawDock(); drawTrail(); drawLines(); drawBoat(); drawForces();
+  drawWater(); drawDock(); drawTrail(); drawLines(); drawBoat(); drawLessonTarget(); drawForces();
 }
 
 function tick(now) {
