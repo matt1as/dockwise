@@ -43,6 +43,14 @@ test('aft-spring departure has a forgiving target for a safe bow-out release', (
   assert.match(`${lesson.startHere} ${lesson.briefing} ${lesson.explanation}`, /Astern/);
 });
 
+test('arrive alongside is a calm baseline before environmental-force lessons', () => {
+  const lesson = getLesson('arrive-alongside');
+  assert.equal(lesson.setup.wind.speed, 0);
+  assert.equal(lesson.setup.current.speed, 0);
+  assert.match(lesson.startHere, /no wind or current/);
+  assert.match(lesson.doneWhen, /moving very slowly/);
+});
+
 test('validation rejects invalid berth modes, values, cleats, and criteria', () => {
   const valid = structuredClone(LESSONS[0]);
   assert.throws(() => validateLesson({ ...valid, setup: { ...valid.setup, berthMode: 'flying' } }), /berth mode/);

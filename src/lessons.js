@@ -10,7 +10,7 @@ const setups = {
   pivot: { berthMode: 'alongside', preset: 'clear', state: { x: 0, y: 3, heading: 0 }, controls: { engine: 0, throttle: 0.4, rudderDeg: 0, propWalk: 0.65 }, wind: { speed: 0, directionDeg: 0 }, current: { speed: 0, directionDeg: 0 } },
   spring: { berthMode: 'alongside', preset: 'aft-spring', state: { x: 0, y: 0, heading: 0 }, controls: { engine: 0, throttle: 0.35, rudderDeg: 0, propWalk: 0.65 }, wind: { speed: 0, directionDeg: 0 }, current: { speed: 0, directionDeg: 0 } },
   wind: { berthMode: 'alongside', preset: 'aft-spring', state: { x: 0, y: 0, heading: 0 }, controls: { engine: 0, throttle: 0.4, rudderDeg: 0, propWalk: 0.65 }, wind: { speed: 5, directionDeg: 90 }, current: { speed: 0, directionDeg: 0 } },
-  arrive: { berthMode: 'alongside', preset: 'clear', state: { x: -6, y: 2.5, heading: 0 }, controls: { engine: 0, throttle: 0.3, rudderDeg: 0, propWalk: 0.65 }, wind: { speed: 2, directionDeg: 270 }, current: { speed: 0, directionDeg: 0 } },
+  arrive: { berthMode: 'alongside', preset: 'clear', state: { x: -6, y: 2.5, heading: 0 }, controls: { engine: 0, throttle: 0.3, rudderDeg: 0, propWalk: 0.65 }, wind: { speed: 0, directionDeg: 270 }, current: { speed: 0, directionDeg: 0 } },
   bow: { berthMode: 'bow-to', preset: 'clear', state: { x: 0, y: 3, heading: -Math.PI / 2 }, controls: { engine: 0, throttle: 0.3, rudderDeg: 0, propWalk: 0.65 }, wind: { speed: 0, directionDeg: 0 }, current: { speed: 0, directionDeg: 0 }, lines: [{ boatCleat: 'forward', boatSide: 'port', dockCleat: 'D4', slackPercent: 4 }, { boatCleat: 'forward', boatSide: 'starboard', dockCleat: 'D3', slackPercent: 4 }] },
   stern: { berthMode: 'stern-to', preset: 'clear', state: { x: 0, y: 3, heading: Math.PI / 2 }, controls: { engine: 0, throttle: 0.3, rudderDeg: 0, propWalk: 0.65 }, wind: { speed: 0, directionDeg: 0 }, current: { speed: 0, directionDeg: 0 }, lines: [{ boatCleat: 'aft', boatSide: 'port', dockCleat: 'D4', slackPercent: 4 }, { boatCleat: 'aft', boatSide: 'starboard', dockCleat: 'D3', slackPercent: 4 }] },
   mixed: { berthMode: 'alongside', preset: 'clear', state: { x: -5, y: 3.5, heading: 0.12 }, controls: { engine: 0, throttle: 0.35, rudderDeg: 0, propWalk: 0.65 }, wind: { speed: 4, directionDeg: 235 }, current: { speed: 0.35, directionDeg: 320 } },
@@ -42,7 +42,7 @@ const lessonExplanations = {
     experiment: 'Use the wind as assistance: add only enough Astern to open the bow, monitor line load, and release while the boat is still slow.',
   },
   'arrive-alongside': {
-    explanation: 'An alongside arrival is mainly a momentum-management exercise. Thrust gets you close, but Neutral gives the water and hull resistance time to remove speed. A parallel final heading leaves fewer sideways corrections and keeps the boat clear of the dock.',
+    explanation: 'This first alongside arrival deliberately has no wind or current: learn the boat’s momentum, rudder, and stopping distance before adding environmental forces. Thrust gets you close, then Neutral gives water and hull resistance time to remove speed. A parallel final heading leaves fewer sideways corrections and keeps the boat clear of the dock.',
     experiment: 'Approach once while carrying extra speed, then repeat at walking pace with an earlier Neutral. Compare peak speed, sideways speed, and how much correction is needed near the dock.',
   },
   'bow-to-control': {
@@ -85,8 +85,8 @@ const lessonInstructions = {
     done: 'You are done when the boat is clear of the dock, the spring is not overloaded, and speed remains low.',
   },
   'arrive-alongside': {
-    start: 'Begin well clear of the dock. Select Ahead briefly, then use Neutral early rather than carrying speed in.',
-    done: 'You are done when the boat is alongside, parallel, stopped, and inside the target area without contact.',
+    start: 'Begin well clear of the dock. This first arrival has no wind or current. Select Ahead briefly, then use Neutral early rather than carrying speed in.',
+    done: 'You are done when the boat is alongside, parallel, moving very slowly, and inside the target area without contact.',
   },
   'bow-to-control': {
     start: 'Click Connect tutorial lines first. Approach bow-first at walking pace and keep both forward lines balanced.',
