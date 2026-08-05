@@ -30,6 +30,11 @@
         <button id="startFirstLesson" class="primary-button" type="button">Start first lesson</button>
         <button id="skipToSandbox" class="secondary-button" type="button">Skip to Sandbox</button>
       </div>
+      <section class="account-panel" aria-labelledby="accountTitle">
+        <div><strong id="accountTitle">Optional cloud progress</strong><p id="backendStatus">Local-only mode. Your progress stays in this browser.</p></div>
+        <div class="account-fields"><label>Email<input id="accountEmail" type="email" autocomplete="email" placeholder="you@example.com"></label><label>Password<input id="accountPassword" type="password" autocomplete="new-password" placeholder="At least 6 characters"></label></div>
+        <div class="account-actions"><button id="accountSignUp" class="secondary-button" type="button">Create account</button><button id="accountSignIn" class="secondary-button" type="button">Sign in</button><button id="accountSignOut" class="secondary-button" type="button" hidden>Sign out</button></div>
+      </section>
     </div>
     <div id="lessonList" class="lesson-list" aria-label="Lessons"></div>
   </section>

@@ -96,6 +96,22 @@ export function createDockwiseStore(adapter) {
     },
     completeOnboarding: () => update((value) => { value.onboardingComplete = true; }),
     getProgress: (lessonId) => clone(document.lessonProgress[lessonId] || { completed: false, attempts: 0 }),
+    getAllProgress: () => clone(document.lessonProgress),
+    mergeProgress(entries = []) {
+      return update((value) => {
+        for (const entry of entries) {
+          if (!entry?.lesson_id) continue;
+          const local = value.lessonProgress[entry.lesson_id] || { completed: false, attempts: 0 };
+          const remoteBest = entry.best_result && typeof entry.best_result === 'object' ? entry.best_result : undefined;
+          value.lessonProgress[entry.lesson_id] = {
+            ...local,
+            attempts: Math.max(local.attempts, Number(entry.attempts) || 0),
+            completed: local.completed || Boolean(entry.completed),
+            ...(local.best || remoteBest ? { best: local.best || remoteBest } : {}),
+          };
+        }
+      });
+    },
     recordAttempt: (lessonId) => update((value) => {
       const previous = value.lessonProgress[lessonId] || { completed: false, attempts: 0 };
       value.lessonProgress[lessonId] = { ...previous, attempts: previous.attempts + 1 };

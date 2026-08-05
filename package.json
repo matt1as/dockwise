@@ -7,6 +7,10 @@
     "start": "vite --host 127.0.0.1 --port 4173",
     "build": "vite build",
     "preview": "vite preview --host 127.0.0.1 --port 4173",
+    "db:start": "npx supabase@latest start --ignore-health-check",
+    "db:stop": "npx supabase@latest stop",
+    "db:reset": "npx supabase@latest db reset --local --yes",
+    "db:status": "npx supabase@latest status",
     "cap:sync": "npm run build && cap sync ios",
     "ios:open": "cap open ios",
     "verify:build": "node scripts/verify-build.mjs",
@@ -22,7 +26,8 @@
     "@capacitor/core": "^8.5.0",
     "@capacitor/haptics": "^8.0.2",
     "@capacitor/ios": "^8.5.0",
-    "@capacitor/preferences": "^8.0.1"
+    "@capacitor/preferences": "^8.0.1",
+    "@supabase/supabase-js": "^2.112.0"
   },
   "overrides": {
     "uuid": "^11.1.1"

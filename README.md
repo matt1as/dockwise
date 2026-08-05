@@ -15,6 +15,25 @@ npm start
 
 Open [http://127.0.0.1:4173](http://127.0.0.1:4173).
 
+## Local Supabase backend
+
+The browser app can run entirely offline/local, or use the local Supabase instance for optional accounts and progress sync. OrbStack must be running with its Docker context selected.
+
+```bash
+# Start the local Supabase services and apply migrations
+npm run db:start
+
+# Copy the public local API values from `npm run db:status` into .env.local:
+# VITE_SUPABASE_URL=http://127.0.0.1:54321
+# VITE_SUPABASE_ANON_KEY=[local public key]
+
+npm start
+```
+
+Open the app at [http://127.0.0.1:4173](http://127.0.0.1:4173). The **Optional cloud progress** panel on the Learn screen supports local email/password signup and sign-in. The local migration creates `profiles`, `lesson_progress`, and `lesson_attempts` with per-user RLS policies. Reset the disposable local database with `npm run db:reset`; stop services with `npm run db:stop`. Never use local Supabase keys or the local database password in production.
+
+The Supabase CLI is invoked through `npx supabase@latest`, so it does not need to be installed globally. The initial local setup may report unhealthy Vector/Auth/Storage health checks under OrbStack while still starting the API and database; `db:start` intentionally uses `--ignore-health-check`, and the REST/Auth end-to-end check is the authoritative verification for this project slice.
+
 ## Use
 
 First-time visitors start in **Learn**, which contains ten guided, retryable lessons. Lesson attempts and completions remain in this browser. During an active lesson, use the touch helm or the keyboard: Up/Down selects engine direction, Space selects neutral, Left/Right sets rudder, and C centers it. Keyboard shortcuts are ignored while typing in a form field.

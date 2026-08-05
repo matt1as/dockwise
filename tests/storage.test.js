@@ -68,3 +68,16 @@ test('mode and onboarding choices survive reconstruction', () => {
   assert.equal(store.getDocument().lastMode, 'sandbox');
   assert.equal(createDockwiseStore(adapter).getDocument().onboardingComplete, true);
 });
+
+test('cloud progress merges without losing local attempts or completion', () => {
+  const store = createDockwiseStore(memory());
+  store.recordAttempt('momentum-neutral');
+  store.mergeProgress([{ lesson_id: 'momentum-neutral', attempts: 4, completed: true, best_result: { accuracy: 'On target' } }]);
+  assert.deepEqual(store.getProgress('momentum-neutral'), {
+    completed: true, attempts: 4, best: { accuracy: 'On target' },
+  });
+  store.mergeProgress([{ lesson_id: 'momentum-neutral', attempts: 2, completed: false, best_result: { accuracy: 'worse' } }]);
+  assert.deepEqual(store.getProgress('momentum-neutral'), {
+    completed: true, attempts: 4, best: { accuracy: 'On target' },
+  });
+});

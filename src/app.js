@@ -10,9 +10,11 @@ import { LESSONS, getLesson } from './lessons.js';
 import { createTrainingSession, observeTrainingStep, summarizeTrainingSession } from './training.js';
 import { createDockwiseStore } from './storage.js';
 import { createRuntimePlatform } from './platform.js';
+import { createSupabaseBackend } from './backend/supabase-client.js';
 
 const platform = await createRuntimePlatform();
 await platform.restoreStorage(localStorage);
+const backend = createSupabaseBackend();
 
 const canvas = document.querySelector('#simCanvas');
 const ctx = canvas.getContext('2d');
@@ -45,6 +47,8 @@ let trainingSession = null;
 let trainingOutcomeStored = false;
 let sandboxSnapshot = null;
 const store = createDockwiseStore(platform.storage(localStorage));
+let backendUser = null;
+let backendSyncInFlight = false;
 let view = { width: 0, height: 0, scale: 42, originX: 0, originY: 0, dpr: 1 };
 
 const controls = {
@@ -77,6 +81,81 @@ function currentControls() {
 
 function distance(a, b) { return Math.hypot(a.x - b.x, a.y - b.y); }
 function dockCleat(id) { return dockCleats.find((cleat) => cleat.id === id); }
+
+function setBackendStatus(message) {
+  const status = $('#backendStatus');
+  if (status) status.textContent = message;
+}
+
+function renderBackendAccount() {
+  const configured = backend.configured;
+  $('#accountEmail').disabled = Boolean(backendUser);
+  $('#accountPassword').disabled = Boolean(backendUser);
+  $('#accountSignUp').hidden = !configured || Boolean(backendUser);
+  $('#accountSignIn').hidden = !configured || Boolean(backendUser);
+  $('#accountSignOut').hidden = !backendUser;
+  if (!configured) setBackendStatus('Local-only mode. Your progress stays in this browser.');
+  else if (backendUser) setBackendStatus(`Signed in as ${backendUser.email || 'Dockwise user'}. Cloud progress is enabled.`);
+  else setBackendStatus('Optional cloud progress. Create an account or sign in; local play works without it.');
+}
+
+async function syncCloudProgress() {
+  if (!backendUser || !backend.configured || backendSyncInFlight) return;
+  backendSyncInFlight = true;
+  setBackendStatus('Syncing progress…');
+  try {
+    const remote = await backend.loadProgress(backendUser.id);
+    if (remote.error) throw remote.error;
+    store.mergeProgress(remote.data || []);
+    const entries = Object.entries(store.getAllProgress()).map(([lesson_id, progress]) => ({
+      lesson_id,
+      attempts: progress.attempts || 0,
+      completed: Boolean(progress.completed),
+      best_result: progress.best || null,
+    }));
+    const saved = await backend.saveProgress(backendUser.id, entries);
+    if (saved.error) throw saved.error;
+    setBackendStatus('Progress synced locally and to Supabase.');
+    renderLessonList();
+  } catch (error) {
+    setBackendStatus(`Cloud sync unavailable; local progress is safe (${error.message || 'network error'}).`);
+  } finally {
+    backendSyncInFlight = false;
+  }
+}
+
+async function accountAction(action) {
+  const email = $('#accountEmail').value.trim();
+  const password = $('#accountPassword').value;
+  if (!email || password.length < 6) {
+    setBackendStatus('Enter an email and a password of at least 6 characters.');
+    return;
+  }
+  setBackendStatus(action === 'signup' ? 'Creating account…' : 'Signing in…');
+  const result = action === 'signup' ? await backend.signUp(email, password) : await backend.signIn(email, password);
+  if (result.error) {
+    setBackendStatus(result.error.message || 'Authentication failed.');
+    return;
+  }
+  backendUser = result.data?.user || result.data?.session?.user || await backend.getUser();
+  renderBackendAccount();
+  await syncCloudProgress();
+}
+
+function installBackendAuth() {
+  renderBackendAccount();
+  if (!backend.configured) return;
+  backend.onAuthStateChange((_event, session) => {
+    backendUser = session?.user || null;
+    renderBackendAccount();
+    queueMicrotask(() => syncCloudProgress());
+  });
+  backend.getUser().then((user) => {
+    backendUser = user;
+    renderBackendAccount();
+    return syncCloudProgress();
+  });
+}
 
 function makeLine(boatCleat, dockId, slackPercent = 3, boatSide = 'port') {
   const dock = dockCleat(dockId);
@@ -406,6 +485,7 @@ function renderLessonCoach() {
       store.recordCompletion(activeLesson.id, summary);
       trainingOutcomeStored = true;
       renderLessonList();
+      void syncCloudProgress();
     }
   } else result.replaceChildren();
   $('#nextLesson').hidden = trainingSession.status !== 'completed' || activeLesson.order === LESSONS.length;
@@ -819,6 +899,9 @@ $$('[data-app-mode]').forEach((button) => button.addEventListener('click', () =>
 }));
 $('#skipToSandbox').addEventListener('click', () => { store.completeOnboarding(); setAppMode('sandbox'); });
 $('#startFirstLesson').addEventListener('click', () => { store.completeOnboarding(); startLesson(LESSONS[0].id); });
+$('#accountSignUp').addEventListener('click', () => { void accountAction('signup'); });
+$('#accountSignIn').addEventListener('click', () => { void accountAction('signin'); });
+$('#accountSignOut').addEventListener('click', async () => { await backend.signOut(); backendUser = null; renderBackendAccount(); });
 $('#connectLessonLines').addEventListener('click', resetLessonSetup);
 $('#retryLesson').addEventListener('click', () => { if (activeLesson) startLesson(activeLesson.id); });
 $('#exitLesson').addEventListener('click', exitLesson);
@@ -853,6 +936,7 @@ window.__dockwise = {
   step: (seconds = 0.05) => { state = stepSimulation(state, currentControls(), seconds); observeActiveTraining(seconds); updateOutputs(); return clone(state); },
 };
 
+installBackendAuth();
 renderLessonList();
 renderScenarioLibrary();
 resizeCanvas(); updateRangeOutputs(); applyPreset('aft-spring');
