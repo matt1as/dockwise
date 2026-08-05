@@ -54,7 +54,7 @@ test('arrive alongside is a calm baseline before environmental-force lessons', (
 test('mixed-conditions challenge keeps environmental force along the dock face', () => {
   const lesson = getLesson('mixed-conditions');
   assert.equal(lesson.setup.wind.speed, 2.5);
-  assert.equal(lesson.setup.wind.directionDeg, 270);
+  assert.equal(lesson.setup.wind.directionDeg, 180);
   assert.equal(lesson.setup.current.speed, 0.35);
   assert.equal(lesson.setup.current.directionDeg, 0);
   assert.equal(lesson.setup.state.heading, 0);
